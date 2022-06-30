@@ -1,14 +1,21 @@
+/*
+ * Copyright (c) 2022 AVI-SPL, Inc. All Rights Reserved.
+ */
 package com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.danteleaderclock5401a.utils;
 
 import java.lang.reflect.Field;
 
 public class SyncInputDTO {
+
 	private String lockStatus;
 	private String syncInputStatus;
 	private String syncInputType;
 	private String syncInputTermination;
 	private String currentDanteSampleRate;
 
+	/**
+	 * SyncInputDTO no argument constructor
+	 */
 	public SyncInputDTO() {
 	}
 
@@ -102,10 +109,15 @@ public class SyncInputDTO {
 		this.currentDanteSampleRate = currentDanteSampleRate;
 	}
 
+	/**
+	 * Check if every field in DTO are None
+	 *
+	 * @return true if every field are None, else false
+	 */
 	public boolean isAllNone() {
 		for (Field f : getClass().getDeclaredFields()) {
 			try {
-				if (f.get(this) != "None")
+				if (f.get(this) != DanteLeaderClockConstant.NONE)
 					return false;
 			} catch (IllegalAccessException e) {
 				return false;

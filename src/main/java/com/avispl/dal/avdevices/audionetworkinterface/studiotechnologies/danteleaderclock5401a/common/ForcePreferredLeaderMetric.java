@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2022 AVI-SPL, Inc. All Rights Reserved.
+ */
 package com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.danteleaderclock5401a.common;
 
 import com.avispl.symphony.api.dal.error.ResourceNotReachableException;
@@ -50,7 +53,6 @@ public enum ForcePreferredLeaderMetric {
 	 *
 	 * @param stateCode value of state
 	 * @return ForcePreferredLeaderMetric
-	 * @throws ResourceNotReachableException when fail to get ForcePreferredLeaderMetric by source value.
 	 */
 	public static ForcePreferredLeaderMetric getByValue(String stateCode) {
 		for (ForcePreferredLeaderMetric state: ForcePreferredLeaderMetric.values()
@@ -59,6 +61,7 @@ public enum ForcePreferredLeaderMetric {
 				return state;
 			}
 		}
+		// null is well-handled in the communicator class so that it won't cause NPE.
 		return null;
 	}
 }

@@ -53,7 +53,6 @@ public enum FailOverClockSourceMetric {
 	 *
 	 * @param sourceValue value of source in number;
 	 * @return FailOverClockSourceMetric
-	 * @throws ResourceNotReachableException when fail to get FailOverClockSourceMetric by source value.
 	 */
 	public static FailOverClockSourceMetric getByValue(String sourceValue) {
 		for (FailOverClockSourceMetric source: FailOverClockSourceMetric.values()
@@ -62,7 +61,7 @@ public enum FailOverClockSourceMetric {
 				return source;
 			}
 		}
+		// null is well-handled in the communicator class so that it won't cause NPE.
 		return null;
 	}
-
 }

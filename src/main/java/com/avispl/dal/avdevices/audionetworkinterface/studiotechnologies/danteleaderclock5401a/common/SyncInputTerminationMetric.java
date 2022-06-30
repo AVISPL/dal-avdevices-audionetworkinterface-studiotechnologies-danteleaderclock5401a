@@ -53,7 +53,6 @@ public enum SyncInputTerminationMetric {
 	 *
 	 * @param code value of code in number;
 	 * @return SyncInputTerminationMetric
-	 * @throws ResourceNotReachableException when fail to get SyncInputTerminationMetric by code.
 	 */
 	public static SyncInputTerminationMetric getByValue(String code) {
 		for (SyncInputTerminationMetric syncInputTerminationMetric: SyncInputTerminationMetric.values()
@@ -62,6 +61,7 @@ public enum SyncInputTerminationMetric {
 				return syncInputTerminationMetric;
 			}
 		}
+		// null is well-handled in the communicator class so that it won't cause NPE.
 		return null;
 	}
 }

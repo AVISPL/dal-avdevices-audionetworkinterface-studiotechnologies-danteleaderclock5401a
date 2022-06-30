@@ -54,7 +54,6 @@ public enum SyncInputTypeMetric {
 	 *
 	 * @param code value of code in number;
 	 * @return SyncInputTypeMetric
-	 * @throws ResourceNotReachableException when fail to get SyncInputTypeMetric by code.
 	 */
 	public static SyncInputTypeMetric getByValue(String code) {
 		for (SyncInputTypeMetric syncInputTypeMetric: SyncInputTypeMetric.values()
@@ -63,6 +62,7 @@ public enum SyncInputTypeMetric {
 				return syncInputTypeMetric;
 			}
 		}
+		// null is well-handled in the communicator class so that it won't cause NPE.
 		return null;
 	}
 }

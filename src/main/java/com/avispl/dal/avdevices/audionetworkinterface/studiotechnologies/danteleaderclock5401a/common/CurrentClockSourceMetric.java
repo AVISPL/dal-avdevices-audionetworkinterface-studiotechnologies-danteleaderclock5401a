@@ -1,5 +1,15 @@
+/*
+ * Copyright (c) 2022 AVI-SPL, Inc. All Rights Reserved.
+ */
 package com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.danteleaderclock5401a.common;
 
+/**
+ * CurrentClockSourceMetric
+ *
+ * @author Kevin / Symphony Dev Team<br>
+ * Created on 6/27/2022
+ * @since 1.0.0
+ */
 public enum CurrentClockSourceMetric {
 	INTERNAL("Internal", "0"),
 	DANTE("Dante", "1"),

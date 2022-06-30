@@ -26,7 +26,7 @@ public enum DanteLeaderClockMonitoringMetrics {
 	SYNC_INPUT_STATUS("SyncInputStatusMetric"),
 	SYNC_INPUT_TYPE("SyncInputType"),
 	SYNC_INPUT_TERMINATION("SyncInputTermination"),
-	CURRENT_DANTE_SAMPLE_RATE("CurrentDanteSampleRate"),
+	CURRENT_DANTE_SAMPLE_RATE("CurrentDanteSampleRate(kHz)"),
 	// NETWORK GROUP
 	NETWORK_IP_ADDRESS("IpAddress"),
 	// SYSTEM GROUP
@@ -37,6 +37,11 @@ public enum DanteLeaderClockMonitoringMetrics {
 
 	private final String propertyName;
 
+	/**
+	 * DanteLeaderClockMonitoringMetrics constructor
+	 *
+	 * @param propertyName {@code {@link #propertyName}}
+	 */
 	DanteLeaderClockMonitoringMetrics(String propertyName) {
 		this.propertyName = propertyName;
 	}

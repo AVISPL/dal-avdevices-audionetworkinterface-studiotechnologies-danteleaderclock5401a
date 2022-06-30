@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2022 AVI-SPL, Inc. All Rights Reserved.
+ */
 package com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.danteleaderclock5401a.common;
 
 import com.avispl.symphony.api.dal.error.ResourceNotReachableException;
@@ -51,7 +54,6 @@ public enum MainClockSourceMetric {
 	 *
 	 * @param sourceValue value of source in number
 	 * @return MainClockSourceMetric
-	 * @throws ResourceNotReachableException when fail to get MainClockSourceMetric by source value.
 	 */
 	public static MainClockSourceMetric getByValue(String sourceValue) {
 		for (MainClockSourceMetric source: MainClockSourceMetric.values()
@@ -60,6 +62,7 @@ public enum MainClockSourceMetric {
 				return source;
 			}
 		}
+		// null is well-handled in the communicator class so that it won't cause NPE.
 		return null;
 	}
 }

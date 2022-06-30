@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2022 AVI-SPL, Inc. All Rights Reserved.
+ */
 package com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.danteleaderclock5401a.utils;
 
 import java.lang.reflect.Field;
@@ -10,6 +13,7 @@ import java.lang.reflect.Field;
  * @since 1.0.0
  */
 public class MainMenuDTO {
+
 	private String currentClockSource;
 	private String primaryLeaderClock;
 	private String primaryPTPV1;
@@ -188,6 +192,11 @@ public class MainMenuDTO {
 		this.forcePreferredLeader = forcePreferredLeader;
 	}
 
+	/**
+	 * Check if every field in DTO are None
+	 *
+	 * @return true if every field are None, else false
+	 */
 	public boolean isAllNone() {
 		for (Field f : getClass().getDeclaredFields()) {
 			try {
