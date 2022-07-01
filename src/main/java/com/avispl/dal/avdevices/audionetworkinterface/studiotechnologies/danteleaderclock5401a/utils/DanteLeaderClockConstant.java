@@ -50,4 +50,6 @@ public class DanteLeaderClockConstant {
 	public static final String TONE_GENERATOR = "ToneGenerator";
 	public static final String NORMALIZED_TONE_FREQUENCY = "(Hz)";
 	public static final String NORMALIZED_TONE_LEVEL = "(dBFS)";
+	public static final String SYNC_INPUT = "SyncInput";
+	public static final String MAIN_MENU = "MainMenu";
 }
