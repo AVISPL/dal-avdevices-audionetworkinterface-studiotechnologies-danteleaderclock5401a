@@ -3,8 +3,6 @@
  */
 package com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.danteleaderclock5401a.common;
 
-import com.avispl.symphony.api.dal.error.ResourceNotReachableException;
-
 /**
  * ForcePreferredLeaderMetric
  *
