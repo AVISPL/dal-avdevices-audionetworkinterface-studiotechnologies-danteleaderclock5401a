@@ -30,7 +30,7 @@ import com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.dantele
 import com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.danteleaderclock5401a.utils.DanteLeaderClockCommands;
 import com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.danteleaderclock5401a.utils.DanteLeaderClockConstant;
 import com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.danteleaderclock5401a.utils.DanteLeaderClockMonitoringMetrics;
-import com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.danteleaderclock5401a.utils.MainMenuDTO;
+import com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.danteleaderclock5401a.utils.GeneralDTO;
 import com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.danteleaderclock5401a.utils.SyncInputDTO;
 import com.avispl.symphony.api.dal.dto.monitor.ExtendedStatistics;
 import com.avispl.symphony.api.dal.dto.monitor.Statistics;
@@ -112,11 +112,16 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 		systemProperties(stats);
 		if (failedMonitor.size() == DanteLeaderClockConstant.NO_OF_MONITORING_METRICS) {
 			StringBuilder stringBuilder = new StringBuilder();
+			stringBuilder.append(DanteLeaderClockConstant.FAIL_POPULATE_ERROR_MESSAGE);
 			for (Map.Entry<String, String> messageFailed : failedMonitor.entrySet()) {
-				stringBuilder.append(messageFailed.getValue());
+				String value = messageFailed.getValue();
+				if (value.contains(DanteLeaderClockConstant.FAIL_POPULATE_ERROR_MESSAGE)) {
+					continue;
+				}
+				stringBuilder.append(value);
 			}
 			failedMonitor.clear();
-			throw new ResourceNotReachableException("Fail to get monitoring data: " + stringBuilder);
+			throw new ResourceNotReachableException(stringBuilder.toString());
 		}
 		ExtendedStatistics extendedStatistics = new ExtendedStatistics();
 		extendedStatistics.setStatistics(stats);
@@ -130,38 +135,38 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 	 */
 	private void mainMenuProperties(Map<String, String> stats) {
 		try {
-			Document doc = Jsoup.parse(doGet(DanteLeaderClockCommands.GET_MAIN_MENU_COMMAND.getCommand()));
-			MainMenuDTO mainMenuDTO = populateMainMenuDTO(doc);
+			Document doc = Jsoup.parse(doGet(DanteLeaderClockCommands.GET_GENERAL_COMMAND.getCommand()));
+			GeneralDTO generalDTO = new GeneralDTO();
+			populateMainMenuDTO(doc, generalDTO);
 			// Not populate this group if all fields are None
-			if (mainMenuDTO.isAllNone()) {
+			if (generalDTO.isAllNone()) {
 				throw new ResourceNotReachableException("Fail to populate statistics for MainMenu group");
 			}
-			String groupName = DanteLeaderClockCommands.GET_MAIN_MENU_COMMAND.getGroupName();
-			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.MAIN_CLOCK_SOURCE.getPropertyName()), mainMenuDTO.getMainClockSource());
+			String groupName = DanteLeaderClockCommands.GET_GENERAL_COMMAND.getGroupName();
+			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.MAIN_CLOCK_SOURCE.getPropertyName()), generalDTO.getMainClockSource());
 			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.FAILOVER_CLOCK_SOURCE.getPropertyName()),
-					mainMenuDTO.getFailOverClockSource());
+					generalDTO.getFailOverClockSource());
 			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.FORCE_PREFERRED_LEADER.getPropertyName()),
-					mainMenuDTO.getForcePreferredLeader());
-			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.CURRENT_CLOCK_SOURCE.getPropertyName()), mainMenuDTO.getCurrentClockSource());
-			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.PRIMARY_LEADER_CLOCK.getPropertyName()), mainMenuDTO.getPrimaryLeaderClock());
-			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.PRIMARY_PTPV1_STATE.getPropertyName()), mainMenuDTO.getPrimaryPTPV1());
-			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.PRIMARY_PTPV2_STATE.getPropertyName()), mainMenuDTO.getPrimaryPTPV2());
-			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.SECONDARY_PTPV1_STATE.getPropertyName()), mainMenuDTO.getSecondaryPTPV1());
-			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.SECONDARY_PTPV2_STATE.getPropertyName()), mainMenuDTO.getSecondaryPTPV2());
+					generalDTO.getForcePreferredLeader());
+			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.CURRENT_CLOCK_SOURCE.getPropertyName()), generalDTO.getCurrentClockSource());
+			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.PRIMARY_LEADER_CLOCK.getPropertyName()), generalDTO.getPrimaryLeaderClock());
+			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.PRIMARY_PTPV1_STATE.getPropertyName()), generalDTO.getPrimaryPTPV1());
+			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.PRIMARY_PTPV2_STATE.getPropertyName()), generalDTO.getPrimaryPTPV2());
+			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.SECONDARY_PTPV1_STATE.getPropertyName()), generalDTO.getSecondaryPTPV1());
+			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.SECONDARY_PTPV2_STATE.getPropertyName()), generalDTO.getSecondaryPTPV2());
 		} catch (Exception e) {
 			logger.error(e);
-			failedMonitor.put(DanteLeaderClockConstant.MAIN_MENU, e.getMessage());
+			failedMonitor.put(DanteLeaderClockConstant.GENERAL, e.getMessage());
 		}
 	}
 
 	/**
-	 * Populate properties for MainMenuDTO
+	 * Populate properties for GeneralDTO
 	 *
 	 * @param doc {@link Document} node that contains the required information
-	 * @return MainMenuDTO
+	 * @param generalDTO Populated GeneralDTO
 	 */
-	private MainMenuDTO populateMainMenuDTO(Document doc) {
-		MainMenuDTO mainMenuDTO = new MainMenuDTO();
+	private void populateMainMenuDTO(Document doc, GeneralDTO generalDTO) {
 		String rawMainClockSource = doc.getElementsByAttributeValue(DanteLeaderClockConstant.NAME_ATTRIBUTE, DanteLeaderClockConstant.MAIN_CLOCK_SOURCE_PAYLOAD)
 				.select(DanteLeaderClockConstant.SELECTED_OPTION).attr(DanteLeaderClockConstant.ATTRIBUTE_VALUE);
 		MainClockSourceMetric mainClockSourceMetric = MainClockSourceMetric.getByValue(rawMainClockSource);
@@ -169,7 +174,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 		if (mainClockSourceMetric != null) {
 			mainClockSource = mainClockSourceMetric.getName();
 		}
-		mainMenuDTO.setMainClockSource(mainClockSource);
+		generalDTO.setMainClockSource(mainClockSource);
 
 		String rawFailOverClockSource = doc.getElementsByAttributeValue(DanteLeaderClockConstant.NAME_ATTRIBUTE, DanteLeaderClockConstant.FAIL_OVER_CLOCK_SOURCE_PAYLOAD)
 				.select(DanteLeaderClockConstant.SELECTED_OPTION).attr(DanteLeaderClockConstant.ATTRIBUTE_VALUE);
@@ -178,7 +183,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 		if (failOverClockSourceMetric != null) {
 			failOverClockSource = failOverClockSourceMetric.getName();
 		}
-		mainMenuDTO.setFailOverClockSource(failOverClockSource);
+		generalDTO.setFailOverClockSource(failOverClockSource);
 
 		String rawForcePreferredLeader = doc.getElementsByAttributeValue(DanteLeaderClockConstant.NAME_ATTRIBUTE, DanteLeaderClockConstant.FORCE_PREFERRED_LEADER_PAYLOAD)
 				.select(DanteLeaderClockConstant.SELECTED_OPTION).attr(DanteLeaderClockConstant.ATTRIBUTE_VALUE);
@@ -187,20 +192,19 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 		if (forcePreferredLeaderMetric != null) {
 			forcePreferredLeader = forcePreferredLeaderMetric.getName();
 		}
-		mainMenuDTO.setForcePreferredLeader(forcePreferredLeader);
+		generalDTO.setForcePreferredLeader(forcePreferredLeader);
 		Elements valClassElements = doc.getElementsByClass(DanteLeaderClockConstant.CLASS_TAG_VAL);
 		// Span tags contain information about: Current Clock Source, Sync Input Status, Primary Leader Clock, Primary PTPV1,
 		// Primary PTPV2, Secondary PTPV1, Secondary PTPV2,
 		Elements spanTagElements = valClassElements.select(DanteLeaderClockConstant.SPAN_TAG);
-		mainMenuDTO.setCurrentClockSource(EnumHandler.populateNoneIfNotValidName(spanTagElements.get(0).text(), CurrentClockSourceMetric.class));
+		generalDTO.setCurrentClockSource(EnumHandler.populateNoneIfNotValidName(spanTagElements.get(0).text(), CurrentClockSourceMetric.class));
 		String primaryLeaderClock = populateNoneIfNotValidPrimaryLeaderClock(spanTagElements.get(2).text());
-		mainMenuDTO.setPrimaryLeaderClock(primaryLeaderClock);
-		mainMenuDTO.setPrimaryPTPV1(EnumHandler.populateNoneIfNotValidName(spanTagElements.get(3).text(), PTPMetric.class));
-		mainMenuDTO.setPrimaryPTPV2(EnumHandler.populateNoneIfNotValidName(spanTagElements.get(4).text(), PTPMetric.class));
-		mainMenuDTO.setSecondaryPTPV1(EnumHandler.populateNoneIfNotValidName(spanTagElements.get(5).text(), PTPMetric.class));
-		mainMenuDTO.setSecondaryPTPV2(EnumHandler.populateNoneIfNotValidName(spanTagElements.get(6).text(), PTPMetric.class));
+		generalDTO.setPrimaryLeaderClock(primaryLeaderClock);
+		generalDTO.setPrimaryPTPV1(EnumHandler.populateNoneIfNotValidName(spanTagElements.get(3).text(), PTPMetric.class));
+		generalDTO.setPrimaryPTPV2(EnumHandler.populateNoneIfNotValidName(spanTagElements.get(4).text(), PTPMetric.class));
+		generalDTO.setSecondaryPTPV1(EnumHandler.populateNoneIfNotValidName(spanTagElements.get(5).text(), PTPMetric.class));
+		generalDTO.setSecondaryPTPV2(EnumHandler.populateNoneIfNotValidName(spanTagElements.get(6).text(), PTPMetric.class));
 		this.syncInputStatus = EnumHandler.populateNoneIfNotValidName(spanTagElements.get(1).text(), SyncInputStatusMetric.class);
-		return mainMenuDTO;
 	}
 
 	/**
@@ -212,46 +216,58 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 		try {
 			Document doc = Jsoup.parse(doGet(DanteLeaderClockCommands.GET_SYNC_INPUT_COMMAND.getCommand()));
 			SyncInputDTO syncInputDTO = new SyncInputDTO();
-			Elements valClassElements = doc.getElementsByClass(DanteLeaderClockConstant.CLASS_TAG_VAL);
-			Elements spanTagElements = valClassElements.select(DanteLeaderClockConstant.SPAN_TAG);
-			String lockStatus =populateNoneIfNotValidLockStatus(spanTagElements.get(0).text());
-			syncInputDTO.setLockStatus(lockStatus);
-			String currentDanteSampleRateNotNormalized = EnumHandler.populateNoneIfNotValidName(spanTagElements.get(1).text(), SyncInputCurrentSampleRateMetric.class);
-			String currentDanteSampleRate = DanteLeaderClockConstant.NONE;
-			if (!currentDanteSampleRateNotNormalized.equals( DanteLeaderClockConstant.NONE)) {
-				currentDanteSampleRate = currentDanteSampleRateNotNormalized.split( DanteLeaderClockConstant.SPACE_REGEX)[0];
-			}
-			syncInputDTO.setCurrentDanteSampleRate(currentDanteSampleRate);
-			String rawSyncInputType = doc.getElementsByAttributeValue(DanteLeaderClockConstant.NAME_ATTRIBUTE, DanteLeaderClockConstant.SYNC_INPUT_TYPE_PAYLOAD)
-					.select(DanteLeaderClockConstant.SELECTED_OPTION).attr(DanteLeaderClockConstant.ATTRIBUTE_VALUE);
-			String syncInputType = DanteLeaderClockConstant.NONE;
-			SyncInputTypeMetric syncInputTypeMetric = SyncInputTypeMetric.getByValue(rawSyncInputType);
-			if (syncInputTypeMetric != null) {
-				syncInputType = syncInputTypeMetric.getName();
-			}
-			syncInputDTO.setSyncInputType(syncInputType);
-			String rawSyncInputTermination = doc.getElementsByAttributeValue(DanteLeaderClockConstant.NAME_ATTRIBUTE, DanteLeaderClockConstant.SYNC_INPUT_TERMINATION_PAYLOAD)
-					.select(DanteLeaderClockConstant.SELECTED_OPTION).attr(DanteLeaderClockConstant.ATTRIBUTE_VALUE);
-			SyncInputTerminationMetric syncInputTerminationMetric = SyncInputTerminationMetric.getByValue(rawSyncInputTermination);
-			String syncInputTermination = DanteLeaderClockConstant.NONE;
-			if (syncInputTerminationMetric != null) {
-				syncInputTermination = syncInputTerminationMetric.getName();
-			}
-			syncInputDTO.setSyncInputTermination(syncInputTermination);
-			syncInputDTO.setSyncInputStatus(this.syncInputStatus);
+			populateSyncInputDTO(doc, syncInputDTO);
 			if (syncInputDTO.isAllNone()) {
 				throw new ResourceNotReachableException("Fail to populate statistics for SyncInput group");
 			}
 			String groupName = DanteLeaderClockCommands.GET_SYNC_INPUT_COMMAND.getGroupName();
 			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.LOCK_STATUS.getPropertyName()), syncInputDTO.getLockStatus());
 			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.SYNC_INPUT_STATUS.getPropertyName()), syncInputDTO.getSyncInputStatus());
-			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.CURRENT_DANTE_SAMPLE_RATE.getPropertyName()), syncInputDTO.getCurrentDanteSampleRate());
+			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.CURRENT_DANTE_SAMPLE_RATE.getPropertyName()),
+					syncInputDTO.getCurrentDanteSampleRate());
 			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.SYNC_INPUT_TYPE.getPropertyName()), syncInputDTO.getSyncInputType());
-			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.SYNC_INPUT_TERMINATION.getPropertyName()), syncInputDTO.getSyncInputTermination());
+			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.SYNC_INPUT_TERMINATION.getPropertyName()),
+					syncInputDTO.getSyncInputTermination());
 		} catch (Exception e) {
 			logger.error(e);
 			failedMonitor.put(DanteLeaderClockConstant.SYNC_INPUT, e.getMessage());
 		}
+	}
+
+	/**
+	 * Populate properties for SyncInputDTO
+	 *
+	 * @param doc {@link Document} node that contains the required information
+	 * @param syncInputDTO Populated SyncInputDTO
+	 */
+	private void populateSyncInputDTO(Document doc, SyncInputDTO syncInputDTO) {
+		Elements valClassElements = doc.getElementsByClass(DanteLeaderClockConstant.CLASS_TAG_VAL);
+		Elements spanTagElements = valClassElements.select(DanteLeaderClockConstant.SPAN_TAG);
+		String lockStatus = populateNoneIfNotValidLockStatus(spanTagElements.get(0).text());
+		syncInputDTO.setLockStatus(lockStatus);
+		String currentDanteSampleRateNotNormalized = EnumHandler.populateNoneIfNotValidName(spanTagElements.get(1).text(), SyncInputCurrentSampleRateMetric.class);
+		String currentDanteSampleRate = DanteLeaderClockConstant.NONE;
+		if (!currentDanteSampleRateNotNormalized.equals(DanteLeaderClockConstant.NONE)) {
+			currentDanteSampleRate = currentDanteSampleRateNotNormalized.split(DanteLeaderClockConstant.SPACE_REGEX)[0];
+		}
+		syncInputDTO.setCurrentDanteSampleRate(currentDanteSampleRate);
+		String rawSyncInputType = doc.getElementsByAttributeValue(DanteLeaderClockConstant.NAME_ATTRIBUTE, DanteLeaderClockConstant.SYNC_INPUT_TYPE_PAYLOAD)
+				.select(DanteLeaderClockConstant.SELECTED_OPTION).attr(DanteLeaderClockConstant.ATTRIBUTE_VALUE);
+		String syncInputType = DanteLeaderClockConstant.NONE;
+		SyncInputTypeMetric syncInputTypeMetric = SyncInputTypeMetric.getByValue(rawSyncInputType);
+		if (syncInputTypeMetric != null) {
+			syncInputType = syncInputTypeMetric.getName();
+		}
+		syncInputDTO.setSyncInputType(syncInputType);
+		String rawSyncInputTermination = doc.getElementsByAttributeValue(DanteLeaderClockConstant.NAME_ATTRIBUTE, DanteLeaderClockConstant.SYNC_INPUT_TERMINATION_PAYLOAD)
+				.select(DanteLeaderClockConstant.SELECTED_OPTION).attr(DanteLeaderClockConstant.ATTRIBUTE_VALUE);
+		SyncInputTerminationMetric syncInputTerminationMetric = SyncInputTerminationMetric.getByValue(rawSyncInputTermination);
+		String syncInputTermination = DanteLeaderClockConstant.NONE;
+		if (syncInputTerminationMetric != null) {
+			syncInputTermination = syncInputTerminationMetric.getName();
+		}
+		syncInputDTO.setSyncInputTermination(syncInputTermination);
+		syncInputDTO.setSyncInputStatus(this.syncInputStatus);
 	}
 
 	/**
@@ -276,8 +292,11 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 					currentToneLevel = DanteLeaderClockConstant.NONE;
 					numberOfFailToneLevelOrFrequency++;
 				}
-				toneGeneratorInfoMap.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockConstant.TONE + i + DanteLeaderClockConstant.FREQUENCY+ DanteLeaderClockConstant.NORMALIZED_TONE_FREQUENCY), currentToneFrequency);
-				toneGeneratorInfoMap.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockConstant.TONE + i + DanteLeaderClockConstant.LEVEL+ DanteLeaderClockConstant.NORMALIZED_TONE_LEVEL), currentToneLevel);
+				toneGeneratorInfoMap.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName,
+						DanteLeaderClockConstant.TONE + i + DanteLeaderClockConstant.FREQUENCY + DanteLeaderClockConstant.NORMALIZED_TONE_FREQUENCY), currentToneFrequency);
+				toneGeneratorInfoMap.put(
+						String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockConstant.TONE + i + DanteLeaderClockConstant.LEVEL + DanteLeaderClockConstant.NORMALIZED_TONE_LEVEL),
+						currentToneLevel);
 			}
 			if (numberOfFailToneLevelOrFrequency == toneGeneratorInfoMap.size()) {
 				throw new ResourceNotReachableException("Fail to populate statistics for ToneGenerator group");
@@ -316,7 +335,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			Elements tdElements = trElements.get(0).select(DanteLeaderClockConstant.TD_TAG);
 			// Populate ip addresses to stats map and add valid network properties to validNetworkList.
 			populateIpAddressProperties(networkMap, validNetworkList, tdElements);
-			int noneNetworkProperties = 0;
+			int numberOfNoneNetworkProperties = 0;
 			// Loop through other tr tags to extract needed information
 			for (int i = 1; i < trElements.size(); i++) {
 				Elements tdElements2 = trElements.get(i).select(DanteLeaderClockConstant.TD_TAG);
@@ -336,13 +355,13 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 					String noSpaceFirstTd = firstTd.replaceAll(DanteLeaderClockConstant.SPACE_REGEX, DanteLeaderClockConstant.EMPTY);
 					if (StringUtils.isNullOrEmpty(tdValue)) {
 						tdValue = DanteLeaderClockConstant.NONE;
-						noneNetworkProperties++;
+						numberOfNoneNetworkProperties++;
 					}
 					networkMap.put(String.format(DanteLeaderClockConstant.TWO_STRINGS_FORMAT, propertyName, noSpaceFirstTd), tdValue);
 					index++;
 				}
 			}
-			if (noneNetworkProperties == networkMap.size()) {
+			if (numberOfNoneNetworkProperties == networkMap.size()) {
 				throw new ResourceNotReachableException("Fail to populate statistics for Network group");
 			}
 			// Only put to stats here if no exception occur.
@@ -426,7 +445,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 
 	/**
 	 * Populate None if lockStatus is not valid.
-	 *  Handle case where {@link EnumHandler#populateNoneIfNotValidName(String, Class)} cannot handle(variable not enum).
+	 * Handle case where {@link EnumHandler#populateNoneIfNotValidName(String, Class)} cannot handle(variable not enum).
 	 *
 	 * @param lockStatus input lock status
 	 * @return valid string of lock status
@@ -434,7 +453,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 	private String populateNoneIfNotValidLockStatus(String lockStatus) {
 		String result = lockStatus;
 		// Possible values: Unlocked/Locked (xMhz)
-		if (result.contains(LockStatusMetric.LOCKED.getName())&& result.contains(DanteLeaderClockConstant.SPACE)) {
+		if (result.contains(LockStatusMetric.LOCKED.getName()) && result.contains(DanteLeaderClockConstant.SPACE)) {
 			String[] lockStatues = result.split(DanteLeaderClockConstant.SPACE);
 			result = lockStatues[0];
 		}
@@ -444,7 +463,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 
 	/**
 	 * Populate None if lockStatus is not valid.
-	 *  Handle case where {@link EnumHandler#populateNoneIfNotValidName(String, Class)} cannot handle(variable not enum).
+	 * Handle case where {@link EnumHandler#populateNoneIfNotValidName(String, Class)} cannot handle(variable not enum).
 	 *
 	 * @param primaryLeaderClock MAC address value
 	 * @return valid string of MAC address
@@ -455,12 +474,12 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			return DanteLeaderClockConstant.NONE;
 		}
 		// Possible values: XX-XX-XX-XX-XX-XX (This Device)/ XX-XX-XX-XX-XX-XX (Other Device)
-		if ((macAddress.contains("This Device") || macAddress.contains("Other Device")) && primaryLeaderClock.contains(DanteLeaderClockConstant.SPACE)) {
+		if ((macAddress.contains(DanteLeaderClockConstant.THIS_DEVICE) || macAddress.contains(DanteLeaderClockConstant.OTHER_DEVICE)) && primaryLeaderClock.contains(DanteLeaderClockConstant.SPACE)) {
 			macAddress = primaryLeaderClock.split(DanteLeaderClockConstant.SPACE)[0];
 		} else {
 			return DanteLeaderClockConstant.NONE;
 		}
-		Pattern pattern= Pattern.compile(DanteLeaderClockConstant.IS_MAC_ADDRESS_REGEX);
+		Pattern pattern = Pattern.compile(DanteLeaderClockConstant.IS_MAC_ADDRESS_REGEX);
 		Matcher matcher = pattern.matcher(macAddress);
 		// Return if primaryLeaderClock have MAC address format.
 		return matcher.matches() ? primaryLeaderClock : DanteLeaderClockConstant.NONE;

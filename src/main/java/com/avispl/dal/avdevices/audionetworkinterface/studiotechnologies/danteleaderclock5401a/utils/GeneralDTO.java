@@ -6,13 +6,13 @@ package com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.dantel
 import java.lang.reflect.Field;
 
 /**
- * MainMenuDTO
+ * GeneralDTO
  *
  * @author Kevin / Symphony Dev Team<br>
  * Created on 6/28/2022
  * @since 1.0.0
  */
-public class MainMenuDTO {
+public class GeneralDTO {
 
 	private String currentClockSource;
 	private String primaryLeaderClock;
@@ -25,9 +25,9 @@ public class MainMenuDTO {
 	private String forcePreferredLeader;
 
 	/**
-	 * MainMenuDTO no argument constructor
+	 * GeneralDTO no argument constructor
 	 */
-	public MainMenuDTO() {
+	public GeneralDTO() {
 	}
 
 	/**

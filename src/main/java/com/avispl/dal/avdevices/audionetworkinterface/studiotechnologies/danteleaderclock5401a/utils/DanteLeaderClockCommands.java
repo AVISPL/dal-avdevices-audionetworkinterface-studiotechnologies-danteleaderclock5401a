@@ -12,7 +12,7 @@ package com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.dantel
  */
 public enum DanteLeaderClockCommands {
 	GET_LOGIN_COMMAND("login.htm",""),
-	GET_MAIN_MENU_COMMAND("main.htm","MainMenu"),
+	GET_GENERAL_COMMAND("main.htm","General"),
 	GET_SYNC_INPUT_COMMAND("sync.htm", "SyncInput"),
 	GET_TONE_GENERATOR_COMMAND("gen.htm", "ToneGenerator"),
 	GET_NETWORK_COMMAND("net.htm", ""),

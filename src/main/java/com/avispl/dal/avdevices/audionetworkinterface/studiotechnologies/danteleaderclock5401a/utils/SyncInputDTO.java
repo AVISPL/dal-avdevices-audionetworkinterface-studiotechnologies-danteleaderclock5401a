@@ -5,6 +5,13 @@ package com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.dantel
 
 import java.lang.reflect.Field;
 
+/**
+ * SyncInputDTO
+ *
+ * @author Kevin / Symphony Dev Team<br>
+ * Created on 6/28/2022
+ * @since 1.0.0
+ */
 public class SyncInputDTO {
 
 	private String lockStatus;

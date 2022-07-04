@@ -51,7 +51,7 @@ public class DanteLeaderClockConstant {
 	public static final String NORMALIZED_TONE_FREQUENCY = "(Hz)";
 	public static final String NORMALIZED_TONE_LEVEL = "(dBFS)";
 	public static final String SYNC_INPUT = "SyncInput";
-	public static final String MAIN_MENU = "MainMenu";
+	public static final String GENERAL = "General";
 	public static final String SPACE = " ";
 	public static final String IS_MAC_ADDRESS_REGEX =
 			"^([0-9A-Fa-f]{2}[:-])"
@@ -59,4 +59,7 @@ public class DanteLeaderClockConstant {
 			+ "([0-9a-fA-F]{4}\\."
 			+ "[0-9a-fA-F]{4}\\."
 			+ "[0-9a-fA-F]{4})$";
+	public static final String THIS_DEVICE = "This Device";
+	public static final String OTHER_DEVICE = "Other Device";
+	public static final String FAIL_POPULATE_ERROR_MESSAGE = "Fail to populate statistics for";
 }
