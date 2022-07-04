@@ -8,6 +8,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -18,6 +20,7 @@ import com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.dantele
 import com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.danteleaderclock5401a.common.EnumHandler;
 import com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.danteleaderclock5401a.common.FailOverClockSourceMetric;
 import com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.danteleaderclock5401a.common.ForcePreferredLeaderMetric;
+import com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.danteleaderclock5401a.common.LockStatusMetric;
 import com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.danteleaderclock5401a.common.MainClockSourceMetric;
 import com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.danteleaderclock5401a.common.PTPMetric;
 import com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.danteleaderclock5401a.common.SyncInputCurrentSampleRateMetric;
@@ -91,7 +94,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 	 * {@inheritDoc}
 	 */
 	@Override
-	public List<Statistics> getMultipleStatistics() throws Exception {
+	public List<Statistics> getMultipleStatistics() {
 		this.authenticate();
 		if (!isLoginSuccess) {
 			throw new ResourceNotReachableException(String.format("Fail to login with username: %s, password: %s", this.getLogin(), this.getPassword()));
@@ -190,11 +193,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 		// Primary PTPV2, Secondary PTPV1, Secondary PTPV2,
 		Elements spanTagElements = valClassElements.select(DanteLeaderClockConstant.SPAN_TAG);
 		mainMenuDTO.setCurrentClockSource(EnumHandler.populateNoneIfNotValidName(spanTagElements.get(0).text(), CurrentClockSourceMetric.class));
-		String primaryLeaderClock = DanteLeaderClockConstant.NONE;
-		String primaryLeaderClockResponse = spanTagElements.get(2).text();
-		if (!StringUtils.isNullOrEmpty(primaryLeaderClockResponse)) {
-			primaryLeaderClock = primaryLeaderClockResponse;
-		}
+		String primaryLeaderClock = populateNoneIfNotValidPrimaryLeaderClock(spanTagElements.get(2).text());
 		mainMenuDTO.setPrimaryLeaderClock(primaryLeaderClock);
 		mainMenuDTO.setPrimaryPTPV1(EnumHandler.populateNoneIfNotValidName(spanTagElements.get(3).text(), PTPMetric.class));
 		mainMenuDTO.setPrimaryPTPV2(EnumHandler.populateNoneIfNotValidName(spanTagElements.get(4).text(), PTPMetric.class));
@@ -215,7 +214,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			SyncInputDTO syncInputDTO = new SyncInputDTO();
 			Elements valClassElements = doc.getElementsByClass(DanteLeaderClockConstant.CLASS_TAG_VAL);
 			Elements spanTagElements = valClassElements.select(DanteLeaderClockConstant.SPAN_TAG);
-			String lockStatus = spanTagElements.get(0).text();
+			String lockStatus =populateNoneIfNotValidLockStatus(spanTagElements.get(0).text());
 			syncInputDTO.setLockStatus(lockStatus);
 			String currentDanteSampleRateNotNormalized = EnumHandler.populateNoneIfNotValidName(spanTagElements.get(1).text(), SyncInputCurrentSampleRateMetric.class);
 			String currentDanteSampleRate = DanteLeaderClockConstant.NONE;
@@ -423,5 +422,47 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			logger.error(e);
 			failedMonitor.put(DanteLeaderClockConstant.SYSTEM, e.getMessage());
 		}
+	}
+
+	/**
+	 * Populate None if lockStatus is not valid.
+	 *  Handle case where {@link EnumHandler#populateNoneIfNotValidName(String, Class)} cannot handle(variable not enum).
+	 *
+	 * @param lockStatus input lock status
+	 * @return valid string of lock status
+	 */
+	private String populateNoneIfNotValidLockStatus(String lockStatus) {
+		String result = lockStatus;
+		// Possible values: Unlocked/Locked (xMhz)
+		if (result.contains(LockStatusMetric.LOCKED.getName())&& result.contains(DanteLeaderClockConstant.SPACE)) {
+			String[] lockStatues = result.split(DanteLeaderClockConstant.SPACE);
+			result = lockStatues[0];
+		}
+		result = EnumHandler.populateNoneIfNotValidName(result, LockStatusMetric.class);
+		return DanteLeaderClockConstant.NONE.equals(result) ? result : lockStatus;
+	}
+
+	/**
+	 * Populate None if lockStatus is not valid.
+	 *  Handle case where {@link EnumHandler#populateNoneIfNotValidName(String, Class)} cannot handle(variable not enum).
+	 *
+	 * @param primaryLeaderClock MAC address value
+	 * @return valid string of MAC address
+	 */
+	private String populateNoneIfNotValidPrimaryLeaderClock(String primaryLeaderClock) {
+		String macAddress = primaryLeaderClock;
+		if (StringUtils.isNullOrEmpty(macAddress)) {
+			return DanteLeaderClockConstant.NONE;
+		}
+		// Possible values: XX-XX-XX-XX-XX-XX (This Device)/ XX-XX-XX-XX-XX-XX (Other Device)
+		if ((macAddress.contains("This Device") || macAddress.contains("Other Device")) && primaryLeaderClock.contains(DanteLeaderClockConstant.SPACE)) {
+			macAddress = primaryLeaderClock.split(DanteLeaderClockConstant.SPACE)[0];
+		} else {
+			return DanteLeaderClockConstant.NONE;
+		}
+		Pattern pattern= Pattern.compile(DanteLeaderClockConstant.IS_MAC_ADDRESS_REGEX);
+		Matcher matcher = pattern.matcher(macAddress);
+		// Return if primaryLeaderClock have MAC address format.
+		return matcher.matches() ? primaryLeaderClock : DanteLeaderClockConstant.NONE;
 	}
 }

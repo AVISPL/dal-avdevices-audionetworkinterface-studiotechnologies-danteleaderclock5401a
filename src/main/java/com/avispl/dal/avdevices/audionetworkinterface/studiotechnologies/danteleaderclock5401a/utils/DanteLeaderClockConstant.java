@@ -52,4 +52,11 @@ public class DanteLeaderClockConstant {
 	public static final String NORMALIZED_TONE_LEVEL = "(dBFS)";
 	public static final String SYNC_INPUT = "SyncInput";
 	public static final String MAIN_MENU = "MainMenu";
+	public static final String SPACE = " ";
+	public static final String IS_MAC_ADDRESS_REGEX =
+			"^([0-9A-Fa-f]{2}[:-])"
+			+ "{5}([0-9A-Fa-f]{2})|"
+			+ "([0-9a-fA-F]{4}\\."
+			+ "[0-9a-fA-F]{4}\\."
+			+ "[0-9a-fA-F]{4})$";
 }
