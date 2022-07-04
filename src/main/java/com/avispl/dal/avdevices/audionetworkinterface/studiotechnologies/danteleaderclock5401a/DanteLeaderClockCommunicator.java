@@ -66,7 +66,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 	 * {@inheritDoc}
 	 */
 	@Override
-	protected void authenticate() {
+	protected void authenticate() throws Exception {
 		try {
 			String loginPayloads = String.format(DanteLeaderClockConstant.LOGIN_PAYLOADS, this.getLogin(), this.getPassword());
 			Document doc = Jsoup.parse(this.doPost(DanteLeaderClockCommands.GET_LOGIN_COMMAND.getCommand(), loginPayloads));
@@ -86,6 +86,9 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			}
 			isLoginSuccess = true;
 		} catch (Exception e) {
+			if (e instanceof ResourceNotReachableException) {
+				throw e;
+			}
 			throw new ResourceNotReachableException(String.format("Fail to login with username: %s, password: %s", this.getLogin(), this.getPassword()), e);
 		}
 	}
@@ -94,7 +97,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 	 * {@inheritDoc}
 	 */
 	@Override
-	public List<Statistics> getMultipleStatistics() {
+	public List<Statistics> getMultipleStatistics() throws Exception {
 		this.authenticate();
 		if (!isLoginSuccess) {
 			throw new ResourceNotReachableException(String.format("Fail to login with username: %s, password: %s", this.getLogin(), this.getPassword()));
