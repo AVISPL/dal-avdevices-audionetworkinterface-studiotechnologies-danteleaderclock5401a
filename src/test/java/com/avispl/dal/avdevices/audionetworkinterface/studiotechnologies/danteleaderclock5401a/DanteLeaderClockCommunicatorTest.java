@@ -17,7 +17,7 @@ class DanteLeaderClockCommunicatorTest {
 
 	@BeforeEach
 	public void setUp() throws Exception {
-		danteLeaderClockCommunicator.setHost("10.8.53.116");
+		danteLeaderClockCommunicator.setHost("10.8.53.115");
 		danteLeaderClockCommunicator.setPort(80);
 		danteLeaderClockCommunicator.setLogin("admin");
 		danteLeaderClockCommunicator.setPassword("admin");
