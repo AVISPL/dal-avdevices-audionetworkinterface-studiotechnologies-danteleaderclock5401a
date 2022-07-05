@@ -47,7 +47,7 @@ import com.avispl.symphony.dal.util.StringUtils;
  *   <li>Device Information</li>
  *   <li>Sync Input Information</li>
  *   <li>Tone Generator Information</li>
- *   <li>Main Menu Information</li>
+ *   <li>General Information</li>
  * </ol>
  *
  * Controllable properties: Not Support in this version
@@ -108,14 +108,14 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 		final Map<String, String> stats = new HashMap<>();
 
 		failedMonitor.clear();
-		mainMenuProperties(stats);
+		generalProperties(stats);
 		syncInputProperties(stats);
 		networkProperties(stats);
 		toneGeneratorProperties(stats);
 		systemProperties(stats);
 		if (failedMonitor.size() == DanteLeaderClockConstant.NO_OF_MONITORING_METRICS) {
 			StringBuilder stringBuilder = new StringBuilder();
-			stringBuilder.append(DanteLeaderClockConstant.FAIL_POPULATE_ERROR_MESSAGE);
+			stringBuilder.append(DanteLeaderClockConstant.FAIL_TO_GET_MONITORING_DATA);
 			for (Map.Entry<String, String> messageFailed : failedMonitor.entrySet()) {
 				String value = messageFailed.getValue();
 				if (value.contains(DanteLeaderClockConstant.FAIL_POPULATE_ERROR_MESSAGE)) {
@@ -132,18 +132,18 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 	}
 
 	/**
-	 * Populate statistics for main menu  properties
+	 * Populate statistics for general  properties
 	 *
 	 * @param stats map of statistics
 	 */
-	private void mainMenuProperties(Map<String, String> stats) {
+	private void generalProperties(Map<String, String> stats) {
 		try {
 			Document doc = Jsoup.parse(doGet(DanteLeaderClockCommands.GET_GENERAL_COMMAND.getCommand()));
 			GeneralDTO generalDTO = new GeneralDTO();
-			populateMainMenuDTO(doc, generalDTO);
+			populateGeneralDTO(doc, generalDTO);
 			// Not populate this group if all fields are None
 			if (generalDTO.isAllNone()) {
-				throw new ResourceNotReachableException("Fail to populate statistics for MainMenu group");
+				throw new ResourceNotReachableException("Fail to populate statistics for General group");
 			}
 			String groupName = DanteLeaderClockCommands.GET_GENERAL_COMMAND.getGroupName();
 			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.MAIN_CLOCK_SOURCE.getPropertyName()), generalDTO.getMainClockSource());
@@ -169,7 +169,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 	 * @param doc {@link Document} node that contains the required information
 	 * @param generalDTO Populated GeneralDTO
 	 */
-	private void populateMainMenuDTO(Document doc, GeneralDTO generalDTO) {
+	private void populateGeneralDTO(Document doc, GeneralDTO generalDTO) {
 		String rawMainClockSource = doc.getElementsByAttributeValue(DanteLeaderClockConstant.NAME_ATTRIBUTE, DanteLeaderClockConstant.MAIN_CLOCK_SOURCE_PAYLOAD)
 				.select(DanteLeaderClockConstant.SELECTED_OPTION).attr(DanteLeaderClockConstant.ATTRIBUTE_VALUE);
 		MainClockSourceMetric mainClockSourceMetric = MainClockSourceMetric.getByValue(rawMainClockSource);

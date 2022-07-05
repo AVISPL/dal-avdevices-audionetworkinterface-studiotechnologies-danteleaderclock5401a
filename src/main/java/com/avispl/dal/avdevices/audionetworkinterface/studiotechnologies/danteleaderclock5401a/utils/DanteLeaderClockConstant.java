@@ -62,4 +62,5 @@ public class DanteLeaderClockConstant {
 	public static final String THIS_DEVICE = "This Device";
 	public static final String OTHER_DEVICE = "Other Device";
 	public static final String FAIL_POPULATE_ERROR_MESSAGE = "Fail to populate statistics for";
+	public static final String FAIL_TO_GET_MONITORING_DATA = "Fail to get monitoring data: ";
 }
