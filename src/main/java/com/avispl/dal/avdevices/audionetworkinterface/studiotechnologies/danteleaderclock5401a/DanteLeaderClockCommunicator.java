@@ -284,12 +284,15 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			Document doc = Jsoup.parse(this.doGet(DanteLeaderClockCommands.GET_TONE_GENERATOR_COMMAND.getCommand()));
 			String groupName = DanteLeaderClockCommands.GET_TONE_GENERATOR_COMMAND.getGroupName();
 			int numberOfFailToneLevelOrFrequency = 0;
+			// 8 indicates 8 tone channels.
 			for (int i = 1; i <= 8; i++) {
+				// format of tone frequency's payload: i1f where 1 is the tone channel.
 				String currentToneFrequency = doc.getElementsByAttributeValue(DanteLeaderClockConstant.NAME_ATTRIBUTE, "i" + i + "f").val();
 				if (StringUtils.isNullOrEmpty(currentToneFrequency)) {
 					currentToneFrequency = DanteLeaderClockConstant.NONE;
 					numberOfFailToneLevelOrFrequency++;
 				}
+				// format of tone level's payload: i1l where 1 is the tone channel.
 				String currentToneLevel = doc.getElementsByAttributeValue(DanteLeaderClockConstant.NAME_ATTRIBUTE, "i" + i + "l").val();
 				if (StringUtils.isNullOrEmpty(currentToneLevel)) {
 					currentToneLevel = DanteLeaderClockConstant.NONE;
