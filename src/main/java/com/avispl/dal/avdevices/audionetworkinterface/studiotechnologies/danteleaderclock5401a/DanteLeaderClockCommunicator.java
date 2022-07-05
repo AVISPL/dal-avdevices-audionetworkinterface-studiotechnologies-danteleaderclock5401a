@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.security.auth.login.FailedLoginException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -89,7 +90,8 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			if (e instanceof ResourceNotReachableException) {
 				throw e;
 			}
-			throw new ResourceNotReachableException(String.format("Fail to login with username: %s, password: %s", this.getLogin(), this.getPassword()), e);
+			logger.error(e);
+			throw new FailedLoginException(String.format("Fail to login with username: %s, password: %s", this.getLogin(), this.getPassword()));
 		}
 	}
 
