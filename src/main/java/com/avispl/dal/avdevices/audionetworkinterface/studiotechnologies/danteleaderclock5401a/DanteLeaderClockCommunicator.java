@@ -76,7 +76,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			// Only throw if the device is unreachable
 			throw e;
 		} catch (Exception e) {
-			//
+			logger.error(e);
 		}
 		// If the endpoint is reachable. We check if it contains valid information
 		Document document = Jsoup.parse(endpointResponse);
