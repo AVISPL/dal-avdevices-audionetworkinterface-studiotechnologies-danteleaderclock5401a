@@ -90,7 +90,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			if (e instanceof ResourceNotReachableException) {
 				throw e;
 			}
-			logger.error(e);
+			logger.error(String.format("An exception occur when trying to log in with username: %s, password: %s, error message: %s", this.getLogin(), this.getPassword(), e.getMessage()), e);
 			throw new FailedLoginException(String.format("Fail to login with username: %s, password: %s", this.getLogin(), this.getPassword()));
 		}
 	}
