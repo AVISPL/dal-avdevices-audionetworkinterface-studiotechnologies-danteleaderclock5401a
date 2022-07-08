@@ -68,28 +68,29 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 	 */
 	@Override
 	protected void authenticate() throws Exception {
+		// Try to reach an endpoint before actually sending a login command.
+		String endpointResponse = DanteLeaderClockConstant.EMPTY;
+		try {
+			endpointResponse = doGet(DanteLeaderClockCommands.GET_GENERAL_COMMAND.getCommand());
+		} catch (ResourceNotReachableException e) {
+			// Only throw if the device is unreachable
+			throw e;
+		} catch (Exception e) {
+			//
+		}
+		// If the endpoint is reachable. We check if it contains valid information
+		Document document = Jsoup.parse(endpointResponse);
+		checkLoginSuccess(document);
+		// No need to send login command if already logged in.
+		if (isLoginSuccess) {
+			return;
+		}
 		try {
 			String loginPayloads = String.format(DanteLeaderClockConstant.LOGIN_PAYLOADS, this.getLogin(), this.getPassword());
 			Document doc = Jsoup.parse(this.doPost(DanteLeaderClockCommands.GET_LOGIN_COMMAND.getCommand(), loginPayloads));
 			// Get all forms from the HTML response
-			Elements formElements = doc.select(DanteLeaderClockConstant.FORM_TAG);
-			// If formElements doesn't contain the login.htm form, the login is success.
-			for (Element e : formElements) {
-				// Check if selected form is login form then preceded
-				if (e.attr(DanteLeaderClockConstant.ACTION_ATTRIBUTE).equals(DanteLeaderClockCommands.GET_LOGIN_COMMAND.getCommand())) {
-					Elements pTags = e.select(DanteLeaderClockConstant.P_TAG);
-					for (Element tag : pTags) {
-						if (tag.toString().contains(DanteLeaderClockConstant.LOGIN_FAILED)) {
-							return;
-						}
-					}
-				}
-			}
-			isLoginSuccess = true;
+			checkLoginSuccess(doc);
 		} catch (Exception e) {
-			if (e instanceof ResourceNotReachableException) {
-				throw e;
-			}
 			logger.error(String.format("An exception occur when trying to log in with username: %s, password: %s, error message: %s", this.getLogin(), this.getPassword(), e.getMessage()), e);
 			throw new FailedLoginException(String.format("Fail to login with username: %s, password: %s", this.getLogin(), this.getPassword()));
 		}
@@ -491,5 +492,27 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 		Matcher matcher = pattern.matcher(macAddress);
 		// Return if primaryLeaderClock have MAC address format.
 		return matcher.matches() ? primaryLeaderClock : DanteLeaderClockConstant.NONE;
+	}
+
+	/**
+	 * This method is used to check if response contain valid information if login successfully.
+	 *
+	 * @param doc response from API
+	 */
+	private void checkLoginSuccess(Document doc) {
+		Elements formElements = doc.select(DanteLeaderClockConstant.FORM_TAG);
+		// If formElements doesn't contain the login.htm form, the login is success.
+		for (Element e : formElements) {
+			// Check if selected form is login form then preceded
+			if (e.attr(DanteLeaderClockConstant.ACTION_ATTRIBUTE).equals(DanteLeaderClockCommands.GET_LOGIN_COMMAND.getCommand())) {
+				Elements pTags = e.select(DanteLeaderClockConstant.P_TAG);
+				for (Element tag : pTags) {
+					if (tag.toString().contains(DanteLeaderClockConstant.LOGIN_FAILED)) {
+						return;
+					}
+				}
+			}
+		}
+		isLoginSuccess = true;
 	}
 }
