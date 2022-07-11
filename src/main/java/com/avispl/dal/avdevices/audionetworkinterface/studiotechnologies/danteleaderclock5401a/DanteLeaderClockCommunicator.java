@@ -80,7 +80,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 		}
 		// If the endpoint is reachable. We check if it contains valid information
 		Document document = Jsoup.parse(endpointResponse);
-		checkLoginSuccess(document);
+		checkLoginSuccess(document, true);
 		// No need to send login command if already logged in.
 		if (isLoginSuccess) {
 			return;
@@ -89,7 +89,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			String loginPayloads = String.format(DanteLeaderClockConstant.LOGIN_PAYLOADS, this.getLogin(), this.getPassword());
 			Document doc = Jsoup.parse(this.doPost(DanteLeaderClockCommands.GET_LOGIN_COMMAND.getCommand(), loginPayloads));
 			// Get all forms from the HTML response
-			checkLoginSuccess(doc);
+			checkLoginSuccess(doc, false);
 		} catch (Exception e) {
 			logger.error(String.format("An exception occur when trying to log in with username: %s, password: %s, error message: %s", this.getLogin(), this.getPassword(), e.getMessage()), e);
 			throw new FailedLoginException(String.format("Fail to login with username: %s, password: %s", this.getLogin(), this.getPassword()));
@@ -498,16 +498,24 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 	 * This method is used to check if response contain valid information if login successfully.
 	 *
 	 * @param doc response from API
+	 * @param isOtherEndpoint true is for other endpoints, false is login.htm.
 	 */
-	private void checkLoginSuccess(Document doc) {
+	private void checkLoginSuccess(Document doc, boolean isOtherEndpoint) {
 		Elements formElements = doc.select(DanteLeaderClockConstant.FORM_TAG);
 		// If formElements doesn't contain the login.htm form, the login is success.
 		for (Element e : formElements) {
 			// Check if selected form is login form then preceded
 			if (e.attr(DanteLeaderClockConstant.ACTION_ATTRIBUTE).equals(DanteLeaderClockCommands.GET_LOGIN_COMMAND.getCommand())) {
+				// If we reach here after sending the get request to /main.htm, but is actually redirect back to /login.htm page => the adapter not logged in.
+				if (isOtherEndpoint) {
+					isLoginSuccess = false;
+					return;
+				}
 				Elements pTags = e.select(DanteLeaderClockConstant.P_TAG);
 				for (Element tag : pTags) {
-					if (tag.toString().contains(DanteLeaderClockConstant.LOGIN_FAILED)) {
+					String tagString = tag.toString();
+					if (tagString.contains(DanteLeaderClockConstant.LOGIN_FAILED) || tagString.contains(DanteLeaderClockConstant.LOGIN_FAILED_ALREADY_LOGGED_IN)) {
+						isLoginSuccess = false;
 						return;
 					}
 				}
