@@ -35,7 +35,7 @@ class DanteLeaderClockCommunicatorTest {
 	 */
 	@Test
 	@Tag("RealDevice")
-	void getMultipleStatistics() throws Exception {
+	void testGetMultipleStatistics() throws Exception {
 		ExtendedStatistics extendedStatistics = (ExtendedStatistics) danteLeaderClockCommunicator.getMultipleStatistics().get(0);
 		Map<String, String> stats = extendedStatistics.getStatistics();
 		for (int i = 1; i < 8; i++) {
