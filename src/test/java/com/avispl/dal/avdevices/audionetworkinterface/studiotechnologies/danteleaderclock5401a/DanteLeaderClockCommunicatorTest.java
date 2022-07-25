@@ -118,4 +118,19 @@ class DanteLeaderClockCommunicatorTest {
 		ResourceNotReachableException exception = assertThrows(ResourceNotReachableException.class, danteLeaderClockCommunicator::getMultipleStatistics);
 		assertEquals(String.format("Fail to login with username: %s, password: not-exist-password", danteLeaderClockCommunicator.getLogin()), exception.getMessage());
 	}
+
+	/**
+	 * Test set adapter property pollingInterval
+	 * @throws Exception when fail to init() or getMultipleStatistics
+	 */
+	@Test
+	@Tag("RealDevice")
+	void testPollingInterval() throws Exception {
+		this.danteLeaderClockCommunicator.destroy();
+		this.danteLeaderClockCommunicator.setPollingInterval("2");
+		this.danteLeaderClockCommunicator.init();
+		ExtendedStatistics extendedStatistics = (ExtendedStatistics) danteLeaderClockCommunicator.getMultipleStatistics().get(0);
+		Map<String, String> stats = extendedStatistics.getStatistics();
+		assertNotNull(stats.get("NextPollingInterval"));
+	}
 }

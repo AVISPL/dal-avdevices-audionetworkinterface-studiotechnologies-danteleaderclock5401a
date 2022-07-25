@@ -64,4 +64,5 @@ public class DanteLeaderClockConstant {
 	public static final String FAIL_POPULATE_ERROR_MESSAGE = "Fail to populate statistics for";
 	public static final String FAIL_TO_GET_MONITORING_DATA = "Fail to get monitoring data: ";
 	public static final String LOGIN_FAILED_ALREADY_LOGGED_IN = "A user is already logged in.";
+	public static final String NEXT_POLLING_INTERVAL = "NextPollingInterval";
 }

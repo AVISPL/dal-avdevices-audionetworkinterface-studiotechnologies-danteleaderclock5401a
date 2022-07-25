@@ -3,11 +3,14 @@
  */
 package com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.danteleaderclock5401a;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -59,9 +62,37 @@ import com.avispl.symphony.dal.util.StringUtils;
  */
 public class DanteLeaderClockCommunicator extends RestCommunicator implements Monitorable {
 
+	private ExtendedStatistics localExtendedStatistics;
+
 	private boolean isLoginSuccess = false;
 	private String syncInputStatus;
 	private final Map<String, String> failedMonitor = new HashMap<>();
+
+	private long defaultStatisticPollingInterval = 60000;
+
+	private long validStatisticPollingInterval;
+	/**
+	 * Configurable property: polling interval (in minute) for Dante Leader Clock adapter
+	 */
+	private String pollingInterval;
+
+	/**
+	 * Retrieves {@code {@link #pollingInterval}}
+	 *
+	 * @return value of {@link #pollingInterval}
+	 */
+	public String getPollingInterval() {
+		return pollingInterval;
+	}
+
+	/**
+	 * Sets {@code pollingInterval}
+	 *
+	 * @param pollingInterval the {@code java.lang.String} field
+	 */
+	public void setPollingInterval(String pollingInterval) {
+		this.pollingInterval = pollingInterval;
+	}
 
 	/**
 	 * {@inheritDoc}
@@ -101,6 +132,22 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 	 */
 	@Override
 	public List<Statistics> getMultipleStatistics() throws Exception {
+		long currentTimestamp = System.currentTimeMillis();
+		String intervalInString = DanteLeaderClockConstant.EMPTY;
+		if (!StringUtils.isNullOrEmpty(pollingInterval)) {
+			handlePollingInterval();
+			// if defaultStatisticPollingInterval is 60 secs then it's normal cpx interval, we won't return cached statistics.
+			if (defaultStatisticPollingInterval != 60000 && validStatisticPollingInterval > currentTimestamp && localExtendedStatistics != null) {
+				if (logger.isDebugEnabled()) {
+					logger.debug(String.format("Returning statistics from cached ExtendedStatistics. %s seconds left until fetching new statistics.", (validStatisticPollingInterval - currentTimestamp)/ 1000));
+				}
+				return Collections.singletonList(localExtendedStatistics);
+			}
+			validStatisticPollingInterval = currentTimestamp + defaultStatisticPollingInterval;
+			DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
+			df.setTimeZone(TimeZone.getDefault());
+			intervalInString = df.format(new java.util.Date(validStatisticPollingInterval));
+		}
 		this.authenticate();
 		if (!isLoginSuccess) {
 			throw new ResourceNotReachableException(String.format("Fail to login with username: %s, password: %s", this.getLogin(), this.getPassword()));
@@ -109,7 +156,6 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			logger.debug(String.format("Perform getMultipleStatistics() at host: %s, port: %s", this.getHost(), this.getPort()));
 		}
 		final Map<String, String> stats = new HashMap<>();
-
 		failedMonitor.clear();
 		generalProperties(stats);
 		syncInputProperties(stats);
@@ -129,9 +175,28 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			failedMonitor.clear();
 			throw new ResourceNotReachableException(stringBuilder.toString());
 		}
+		if (!DanteLeaderClockConstant.EMPTY.equals(intervalInString)) {
+			stats.put(DanteLeaderClockConstant.NEXT_POLLING_INTERVAL, intervalInString);
+		}
 		ExtendedStatistics extendedStatistics = new ExtendedStatistics();
 		extendedStatistics.setStatistics(stats);
-		return Collections.singletonList(extendedStatistics);
+		localExtendedStatistics = extendedStatistics;
+		return Collections.singletonList(localExtendedStatistics);
+	}
+
+	/**
+	 * Handle {@link DanteLeaderClockCommunicator#pollingInterval} adapter property
+	 */
+	private void handlePollingInterval() {
+		try {
+			// Convert pollingInterval from minute to long millisecond
+			long interval = Long.parseLong(pollingInterval) * 60000;
+			if (interval > defaultStatisticPollingInterval) {
+				defaultStatisticPollingInterval = interval;
+			}
+		} catch (Exception e) {
+			logger.error(String.format("Handle adapter property pollingInterval fail with value: %s.", pollingInterval), e);
+		}
 	}
 
 	/**
