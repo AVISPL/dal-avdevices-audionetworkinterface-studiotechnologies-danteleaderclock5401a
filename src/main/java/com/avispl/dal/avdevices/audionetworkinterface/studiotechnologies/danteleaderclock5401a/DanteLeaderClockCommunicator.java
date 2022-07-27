@@ -68,8 +68,6 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 	private String syncInputStatus;
 	private final Map<String, String> failedMonitor = new HashMap<>();
 
-	private long defaultStatisticPollingInterval = 60000;
-
 	private long validStatisticPollingInterval;
 	/**
 	 * Configurable property: polling interval (in minute) for Dante Leader Clock adapter
@@ -135,15 +133,15 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 		long currentTimestamp = System.currentTimeMillis();
 		String intervalInString = DanteLeaderClockConstant.EMPTY;
 		if (!StringUtils.isNullOrEmpty(pollingInterval)) {
-			handlePollingInterval();
-			// if defaultStatisticPollingInterval is 60 secs then it's normal cpx interval, we won't return cached statistics.
-			if (defaultStatisticPollingInterval != 60000 && validStatisticPollingInterval > currentTimestamp && localExtendedStatistics != null) {
+			long handledPollingInterval = handlePollingInterval();
+			// if handledPollingInterval is 60 secs then it's normal cpx interval, we won't return cached statistics.
+			if (handledPollingInterval != 60000 && validStatisticPollingInterval > currentTimestamp && localExtendedStatistics != null) {
 				if (logger.isDebugEnabled()) {
 					logger.debug(String.format("Returning statistics from cached ExtendedStatistics. %s seconds left until fetching new statistics.", (validStatisticPollingInterval - currentTimestamp)/ 1000));
 				}
 				return Collections.singletonList(localExtendedStatistics);
 			}
-			validStatisticPollingInterval = currentTimestamp + defaultStatisticPollingInterval;
+			validStatisticPollingInterval = currentTimestamp + handledPollingInterval;
 			DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
 			df.setTimeZone(TimeZone.getDefault());
 			intervalInString = df.format(new java.util.Date(validStatisticPollingInterval));
@@ -187,18 +185,18 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 	/**
 	 * Handle {@link DanteLeaderClockCommunicator#pollingInterval} adapter property
 	 */
-	private void handlePollingInterval() {
+	private long handlePollingInterval() {
 		try {
 			// Convert pollingInterval from minute to long millisecond
 			long interval = Long.parseLong(pollingInterval) * 60000;
-			if (interval > defaultStatisticPollingInterval) {
-				defaultStatisticPollingInterval = interval;
+			if (interval > 60000) {
+				return interval;
 			} else {
-				defaultStatisticPollingInterval = 60000;
+				return 60000;
 			}
 		} catch (Exception e) {
-			defaultStatisticPollingInterval = 60000;
 			logger.error(String.format("Handle adapter property pollingInterval fail with value: %s.", pollingInterval), e);
+			return 60000;
 		}
 	}
 
