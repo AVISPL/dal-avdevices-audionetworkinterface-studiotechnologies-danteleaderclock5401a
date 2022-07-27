@@ -193,8 +193,11 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			long interval = Long.parseLong(pollingInterval) * 60000;
 			if (interval > defaultStatisticPollingInterval) {
 				defaultStatisticPollingInterval = interval;
+			} else {
+				defaultStatisticPollingInterval = 60000;
 			}
 		} catch (Exception e) {
+			defaultStatisticPollingInterval = 60000;
 			logger.error(String.format("Handle adapter property pollingInterval fail with value: %s.", pollingInterval), e);
 		}
 	}
