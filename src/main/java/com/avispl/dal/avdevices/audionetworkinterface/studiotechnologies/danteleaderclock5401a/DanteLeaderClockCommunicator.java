@@ -66,6 +66,9 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 
 	private ExtendedStatistics localExtendedStatistics;
 
+	/**
+	 * DanteLeaderClockCommunicator constructor to initialize {@link DanteLeaderClockCommunicator#sentRequests}
+	 */
 	public DanteLeaderClockCommunicator() {
 		initSentRequests();
 	}
