@@ -181,7 +181,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 		populateGeneralDTO(doc, generalDTO);
 		// Not populate this group if all fields are None
 		if (generalDTO.isAllNone()) {
-			throw new ResourceNotReachableException("Fail to populate statistics for General group");
+			throw new ResourceNotReachableException("Fail to populate statistics for General group, all properties are not in correct format.");
 		}
 		String groupName = DanteLeaderClockCommands.GET_GENERAL_COMMAND.getGroupName();
 		stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.MAIN_CLOCK_SOURCE.getPropertyName()), generalDTO.getMainClockSource());
@@ -255,7 +255,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 		SyncInputDTO syncInputDTO = new SyncInputDTO();
 		populateSyncInputDTO(doc, syncInputDTO);
 		if (syncInputDTO.isAllNone()) {
-			throw new ResourceNotReachableException("Fail to populate statistics for SyncInput group");
+			throw new ResourceNotReachableException("Fail to populate statistics for SyncInput group, all properties are not in correct format.");
 		}
 		String groupName = DanteLeaderClockCommands.GET_SYNC_INPUT_COMMAND.getGroupName();
 		stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.LOCK_STATUS.getPropertyName()), syncInputDTO.getLockStatus());
@@ -335,7 +335,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 					currentToneLevel);
 		}
 		if (numberOfFailToneLevelOrFrequency == toneGeneratorInfoMap.size()) {
-			throw new ResourceNotReachableException("Fail to populate statistics for ToneGenerator group");
+			throw new ResourceNotReachableException("Fail to populate statistics for ToneGenerator group, all properties are not in correct format.");
 		}
 		// Only put to stats here if no exception occur.
 		stats.putAll(toneGeneratorInfoMap);
@@ -394,7 +394,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			}
 		}
 		if (numberOfNoneNetworkProperties == networkMap.size()) {
-			throw new ResourceNotReachableException("Fail to populate statistics for Network group");
+			throw new ResourceNotReachableException("Fail to populate statistics for Network group, all properties are not in correct format.");
 		}
 		// Only put to stats here if no exception occur.
 		stats.putAll(networkMap);
@@ -462,7 +462,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			systemMap.put(String.format(DanteLeaderClockConstant.TWO_STRINGS_FORMAT, propertyName, DanteLeaderClockMonitoringMetrics.SYSTEM_DATE.getPropertyName()), systemDate);
 		}
 		if (numberOfNoneSystemProperties == systemMap.size()) {
-			throw new ResourceNotReachableException("Fail to populate statistics for System group");
+			throw new ResourceNotReachableException("Fail to populate statistics for System group, all properties are not in correct format.");
 		}
 		stats.putAll(systemMap);
 	}
