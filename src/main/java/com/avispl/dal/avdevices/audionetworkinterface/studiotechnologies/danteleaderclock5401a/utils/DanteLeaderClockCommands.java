@@ -11,12 +11,12 @@ package com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.dantel
  * @since 1.0.0
  */
 public enum DanteLeaderClockCommands {
-	GET_LOGIN_COMMAND("login.htm",""),
-	GET_GENERAL_COMMAND("main.htm","General"),
-	GET_SYNC_INPUT_COMMAND("sync.htm", "SyncInput"),
-	GET_TONE_GENERATOR_COMMAND("gen.htm", "ToneGenerator"),
-	GET_NETWORK_COMMAND("net.htm", ""),
-	GET_SYSTEM_COMMAND("sys.htm","");
+	GET_LOGIN_COMMAND("UNPW.cgi",""),
+	GET_GENERAL_COMMAND("main.shtml","General"),
+	GET_SYNC_INPUT_COMMAND("sync.shtml", "SyncInput"),
+	GET_TONE_GENERATOR_COMMAND("gen.shtml", "ToneGenerator"),
+	GET_NETWORK_COMMAND("net.shtml", ""),
+	GET_SYSTEM_COMMAND("sys.shtml","");
 
 	private final String command;
 	private final String groupName;

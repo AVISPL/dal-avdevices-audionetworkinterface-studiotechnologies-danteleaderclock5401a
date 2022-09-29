@@ -571,7 +571,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 		// If formElements doesn't contain the login.htm form, the login is success.
 		for (Element e : formElements) {
 			// Check if selected form is login form then preceded
-			if (e.attr(DanteLeaderClockConstant.ACTION_ATTRIBUTE).equals(DanteLeaderClockCommands.GET_LOGIN_COMMAND.getCommand())) {
+			if (e.attr(DanteLeaderClockConstant.ACTION_ATTRIBUTE).equals(DanteLeaderClockConstant.SLASH +DanteLeaderClockCommands.GET_LOGIN_COMMAND.getCommand())) {
 				// If we reach here after sending the get request to /main.htm, but is actually redirect back to /login.htm page => the adapter not logged in.
 				if (isOtherEndpoint) {
 					isLoginSuccess = false;
