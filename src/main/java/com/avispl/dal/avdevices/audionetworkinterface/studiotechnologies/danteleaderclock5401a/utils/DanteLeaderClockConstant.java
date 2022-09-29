@@ -43,7 +43,6 @@ public class DanteLeaderClockConstant {
 	public static final String MAIN_CLOCK_SOURCE_PAYLOAD = "sCS";
 	public static final String FAIL_OVER_CLOCK_SOURCE_PAYLOAD = "sLS";
 	public static final String FORCE_PREFERRED_LEADER_PAYLOAD = "sFM";
-	public static final int NO_OF_MONITORING_METRICS = 5;
 	public static final String NONE = "None";
 	public static final String SYSTEM = "System";
 	public static final String NETWORK = "Network";
@@ -61,8 +60,6 @@ public class DanteLeaderClockConstant {
 			+ "[0-9a-fA-F]{4})$";
 	public static final String THIS_DEVICE = "This Device";
 	public static final String OTHER_DEVICE = "Other Device";
-	public static final String FAIL_POPULATE_ERROR_MESSAGE = "Fail to populate statistics for";
-	public static final String FAIL_TO_GET_MONITORING_DATA = "Fail to get monitoring data: ";
 	public static final String LOGIN_FAILED_ALREADY_LOGGED_IN = "A user is already logged in.";
 	public static final String NEXT_POLLING_INTERVAL = "NextPollingInterval";
 	public static final String SLASH = "/";
