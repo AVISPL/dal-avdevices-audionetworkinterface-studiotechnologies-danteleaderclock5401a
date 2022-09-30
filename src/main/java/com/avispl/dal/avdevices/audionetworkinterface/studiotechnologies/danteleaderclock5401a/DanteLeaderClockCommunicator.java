@@ -3,11 +3,14 @@
  */
 package com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.danteleaderclock5401a;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -59,18 +62,45 @@ import com.avispl.symphony.dal.util.StringUtils;
  */
 public class DanteLeaderClockCommunicator extends RestCommunicator implements Monitorable {
 
-	private boolean isLoginSuccess = false;
-	private String syncInputStatus;
-
-	private final Map<String, Boolean> sentRequests = new HashMap<>();
-
 	private ExtendedStatistics localExtendedStatistics;
 
+	private boolean isLoginSuccess = false;
+	private String syncInputStatus;
+	private final Map<String, String> failedMonitor = new HashMap<>();
+
+	private long validStatisticPollingInterval;
 	/**
-	 * DanteLeaderClockCommunicator constructor to initialize {@link DanteLeaderClockCommunicator#sentRequests}
+	 * Configurable property: polling interval (in minute) for Dante Leader Clock adapter
 	 */
-	public DanteLeaderClockCommunicator() {
-		initSentRequests();
+	private String pollingInterval;
+
+	/**
+	 * Retrieves {@code {@link #pollingInterval}}
+	 *
+	 * @return value of {@link #pollingInterval}
+	 */
+	public String getPollingInterval() {
+		return pollingInterval;
+	}
+
+	/**
+	 * Sets {@code pollingInterval}
+	 *
+	 * @param pollingInterval the {@code java.lang.String} field
+	 */
+	public void setPollingInterval(String pollingInterval) {
+		try {
+			// Convert pollingInterval from minute to long millisecond
+			long interval = Long.parseLong(pollingInterval) * 60000;
+			if (interval > 60000) {
+				this.pollingInterval = String.valueOf(interval);
+			} else {
+				this.pollingInterval = String.valueOf(60000);
+			}
+		} catch (Exception e) {
+			logger.error(String.format("Handle adapter property pollingInterval fail with value: %s.", pollingInterval), e);
+			this.pollingInterval = String.valueOf(60000);
+		}
 	}
 
 	/**
@@ -86,7 +116,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			// Only throw if the device is unreachable
 			throw e;
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error("Fail to login with cause: " + e.getCause() +", trying to re-login later.",e);
 		}
 		// If the endpoint is reachable. We check if it contains valid information
 		Document document = Jsoup.parse(endpointResponse);
@@ -111,6 +141,22 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 	 */
 	@Override
 	public List<Statistics> getMultipleStatistics() throws Exception {
+		long currentTimestamp = System.currentTimeMillis();
+		String intervalInString = DanteLeaderClockConstant.EMPTY;
+		if (!StringUtils.isNullOrEmpty(pollingInterval)) {
+			long handledPollingInterval = Long.parseLong(pollingInterval);
+			// if handledPollingInterval is 60 secs then it's normal cpx interval, we won't return cached statistics.
+			if (handledPollingInterval != 60000 && validStatisticPollingInterval > currentTimestamp && localExtendedStatistics != null) {
+				if (logger.isDebugEnabled()) {
+					logger.debug(String.format("Returning statistics from cached ExtendedStatistics. %s seconds left until fetching new statistics.", (validStatisticPollingInterval - currentTimestamp) / 1000));
+				}
+				return Collections.singletonList(localExtendedStatistics);
+			}
+			validStatisticPollingInterval = currentTimestamp + handledPollingInterval;
+			DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
+			df.setTimeZone(TimeZone.getDefault());
+			intervalInString = df.format(new java.util.Date(validStatisticPollingInterval));
+		}
 		this.authenticate();
 		if (!isLoginSuccess) {
 			throw new ResourceNotReachableException(String.format("Fail to login with username: %s, password: %s", this.getLogin(), this.getPassword()));
@@ -119,82 +165,64 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			logger.debug(String.format("Perform getMultipleStatistics() at host: %s, port: %s", this.getHost(), this.getPort()));
 		}
 		final Map<String, String> stats = new HashMap<>();
-		if (localExtendedStatistics == null) {
-			localExtendedStatistics = new ExtendedStatistics();
-			localExtendedStatistics.setStatistics(stats);
-		}
-		if (sentRequests.get(DanteLeaderClockConstant.NETWORK).equals(false)) {
-			networkProperties(stats);
-			sentRequests.put(DanteLeaderClockConstant.NETWORK, true);
-			localExtendedStatistics.getStatistics().putAll(stats);
-			return Collections.singletonList(localExtendedStatistics);
-		}
-		if (sentRequests.get(DanteLeaderClockConstant.SYSTEM).equals(false)) {
-			systemProperties(stats);
-			sentRequests.put(DanteLeaderClockConstant.SYSTEM, true);
-			localExtendedStatistics.getStatistics().putAll(stats);
-			return Collections.singletonList(localExtendedStatistics);
-		}
-		if (sentRequests.get(DanteLeaderClockConstant.GENERAL).equals(false)) {
-			generalProperties(stats);
-			sentRequests.put(DanteLeaderClockConstant.GENERAL, true);
-			localExtendedStatistics.getStatistics().putAll(stats);
-			return Collections.singletonList(localExtendedStatistics);
-		}
-		if (sentRequests.get(DanteLeaderClockConstant.SYNC_INPUT).equals(false)) {
-			syncInputProperties(stats);
-			sentRequests.put(DanteLeaderClockConstant.SYNC_INPUT, true);
-			localExtendedStatistics.getStatistics().putAll(stats);
-			return Collections.singletonList(localExtendedStatistics);
-		}
+		failedMonitor.clear();
+		generalProperties(stats);
+		syncInputProperties(stats);
+		networkProperties(stats);
 		toneGeneratorProperties(stats);
-		sentRequests.put(DanteLeaderClockConstant.TONE_GENERATOR, true);
-		localExtendedStatistics.getStatistics().putAll(stats);
-		// If we reach here then every statistic are fetched
-		ExtendedStatistics extendedStatistics = localExtendedStatistics;
-		// We initialize localExtendedStatistics and init sentRequests to fetch new statistics again (5 requests ~ 5 cpx intervals)
-		localExtendedStatistics = null;
-		initSentRequests();
-		return Collections.singletonList(extendedStatistics);
-	}
-
-	/**
-	 * Initialize {@link DanteLeaderClockCommunicator#sentRequests}
-	 */
-	private void initSentRequests() {
-		sentRequests.put(DanteLeaderClockConstant.NETWORK, false);
-		sentRequests.put(DanteLeaderClockConstant.GENERAL, false);
-		sentRequests.put(DanteLeaderClockConstant.SYNC_INPUT, false);
-		sentRequests.put(DanteLeaderClockConstant.TONE_GENERATOR, false);
-		sentRequests.put(DanteLeaderClockConstant.SYSTEM, false);
+		systemProperties(stats);
+		if (failedMonitor.size() == DanteLeaderClockConstant.NO_OF_MONITORING_METRICS) {
+			StringBuilder stringBuilder = new StringBuilder();
+			stringBuilder.append(DanteLeaderClockConstant.FAIL_TO_GET_MONITORING_DATA);
+			for (Map.Entry<String, String> messageFailed : failedMonitor.entrySet()) {
+				String value = messageFailed.getValue();
+				if (value.contains(DanteLeaderClockConstant.FAIL_POPULATE_ERROR_MESSAGE)) {
+					continue;
+				}
+				stringBuilder.append(value);
+			}
+			failedMonitor.clear();
+			throw new ResourceNotReachableException(stringBuilder.toString());
+		}
+		if (!DanteLeaderClockConstant.EMPTY.equals(intervalInString)) {
+			stats.put(DanteLeaderClockConstant.NEXT_POLLING_INTERVAL, intervalInString);
+		}
+		ExtendedStatistics extendedStatistics = new ExtendedStatistics();
+		extendedStatistics.setStatistics(stats);
+		localExtendedStatistics = extendedStatistics;
+		return Collections.singletonList(localExtendedStatistics);
 	}
 
 	/**
 	 * Populate statistics for general  properties
 	 *
 	 * @param stats map of statistics
-	 * @throws Exception when fail to get general statistics
 	 */
-	private void generalProperties(Map<String, String> stats) throws Exception {
-		Document doc = Jsoup.parse(doGet(DanteLeaderClockCommands.GET_GENERAL_COMMAND.getCommand()));
-		GeneralDTO generalDTO = new GeneralDTO();
-		populateGeneralDTO(doc, generalDTO);
-		// Not populate this group if all fields are None
-		if (generalDTO.isAllNone()) {
-			throw new ResourceNotReachableException("Fail to populate statistics for General group, all properties are not in correct format.");
+	private void generalProperties(Map<String, String> stats) {
+		try {
+			Document doc = Jsoup.parse(doGet(DanteLeaderClockCommands.GET_GENERAL_COMMAND.getCommand()));
+			GeneralDTO generalDTO = new GeneralDTO();
+			populateGeneralDTO(doc, generalDTO);
+			// Not populate this group if all fields are None
+			if (generalDTO.isAllNone()) {
+				throw new ResourceNotReachableException("Fail to populate statistics for General group");
+			}
+			String groupName = DanteLeaderClockCommands.GET_GENERAL_COMMAND.getGroupName();
+			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.MAIN_CLOCK_SOURCE.getPropertyName()), generalDTO.getMainClockSource());
+			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.FAILOVER_CLOCK_SOURCE.getPropertyName()),
+					generalDTO.getFailOverClockSource());
+			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.FORCE_PREFERRED_LEADER.getPropertyName()),
+					generalDTO.getForcePreferredLeader());
+			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.CURRENT_CLOCK_SOURCE.getPropertyName()), generalDTO.getCurrentClockSource());
+			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.PRIMARY_LEADER_CLOCK.getPropertyName()), generalDTO.getPrimaryLeaderClock());
+			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.PRIMARY_PTPV1_STATE.getPropertyName()), generalDTO.getPrimaryPTPV1());
+			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.PRIMARY_PTPV2_STATE.getPropertyName()), generalDTO.getPrimaryPTPV2());
+			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.SECONDARY_PTPV1_STATE.getPropertyName()), generalDTO.getSecondaryPTPV1());
+			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.SECONDARY_PTPV2_STATE.getPropertyName()), generalDTO.getSecondaryPTPV2());
+		} catch (Exception e) {
+			logger.error("Fail to get and populate list of general properties",e);
+			failedMonitor.put(DanteLeaderClockConstant.GENERAL, e.getMessage());
 		}
-		String groupName = DanteLeaderClockCommands.GET_GENERAL_COMMAND.getGroupName();
-		stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.MAIN_CLOCK_SOURCE.getPropertyName()), generalDTO.getMainClockSource());
-		stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.FAILOVER_CLOCK_SOURCE.getPropertyName()),
-				generalDTO.getFailOverClockSource());
-		stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.FORCE_PREFERRED_LEADER.getPropertyName()),
-				generalDTO.getForcePreferredLeader());
-		stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.CURRENT_CLOCK_SOURCE.getPropertyName()), generalDTO.getCurrentClockSource());
-		stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.PRIMARY_LEADER_CLOCK.getPropertyName()), generalDTO.getPrimaryLeaderClock());
-		stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.PRIMARY_PTPV1_STATE.getPropertyName()), generalDTO.getPrimaryPTPV1());
-		stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.PRIMARY_PTPV2_STATE.getPropertyName()), generalDTO.getPrimaryPTPV2());
-		stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.SECONDARY_PTPV1_STATE.getPropertyName()), generalDTO.getSecondaryPTPV1());
-		stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.SECONDARY_PTPV2_STATE.getPropertyName()), generalDTO.getSecondaryPTPV2());
 	}
 
 	/**
@@ -248,23 +276,27 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 	 * Populate statistics for sync input properties
 	 *
 	 * @param stats Map of statistics
-	 * @throws Exception when fail to get sync input statistics
 	 */
-	private void syncInputProperties(Map<String, String> stats) throws Exception {
-		Document doc = Jsoup.parse(doGet(DanteLeaderClockCommands.GET_SYNC_INPUT_COMMAND.getCommand()));
-		SyncInputDTO syncInputDTO = new SyncInputDTO();
-		populateSyncInputDTO(doc, syncInputDTO);
-		if (syncInputDTO.isAllNone()) {
-			throw new ResourceNotReachableException("Fail to populate statistics for SyncInput group, all properties are not in correct format.");
+	private void syncInputProperties(Map<String, String> stats) {
+		try {
+			Document doc = Jsoup.parse(doGet(DanteLeaderClockCommands.GET_SYNC_INPUT_COMMAND.getCommand()));
+			SyncInputDTO syncInputDTO = new SyncInputDTO();
+			populateSyncInputDTO(doc, syncInputDTO);
+			if (syncInputDTO.isAllNone()) {
+				throw new ResourceNotReachableException("Fail to populate statistics for SyncInput group");
+			}
+			String groupName = DanteLeaderClockCommands.GET_SYNC_INPUT_COMMAND.getGroupName();
+			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.LOCK_STATUS.getPropertyName()), syncInputDTO.getLockStatus());
+			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.SYNC_INPUT_STATUS.getPropertyName()), syncInputDTO.getSyncInputStatus());
+			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.CURRENT_DANTE_SAMPLE_RATE.getPropertyName()),
+					syncInputDTO.getCurrentDanteSampleRate());
+			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.SYNC_INPUT_TYPE.getPropertyName()), syncInputDTO.getSyncInputType());
+			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.SYNC_INPUT_TERMINATION.getPropertyName()),
+					syncInputDTO.getSyncInputTermination());
+		} catch (Exception e) {
+			logger.error("Fail to get and populate list of sync input.",e);
+			failedMonitor.put(DanteLeaderClockConstant.SYNC_INPUT, e.getMessage());
 		}
-		String groupName = DanteLeaderClockCommands.GET_SYNC_INPUT_COMMAND.getGroupName();
-		stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.LOCK_STATUS.getPropertyName()), syncInputDTO.getLockStatus());
-		stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.SYNC_INPUT_STATUS.getPropertyName()), syncInputDTO.getSyncInputStatus());
-		stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.CURRENT_DANTE_SAMPLE_RATE.getPropertyName()),
-				syncInputDTO.getCurrentDanteSampleRate());
-		stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.SYNC_INPUT_TYPE.getPropertyName()), syncInputDTO.getSyncInputType());
-		stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.SYNC_INPUT_TERMINATION.getPropertyName()),
-				syncInputDTO.getSyncInputTermination());
 	}
 
 	/**
@@ -307,97 +339,105 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 	 * Populate statistics for tone generator properties
 	 *
 	 * @param stats Map of statistics
-	 * @throws Exception when fail to get tone generator statistics
 	 */
-	private void toneGeneratorProperties(Map<String, String> stats) throws Exception {
-		Map<String, String> toneGeneratorInfoMap = new HashMap<>();
-		Document doc = Jsoup.parse(this.doGet(DanteLeaderClockCommands.GET_TONE_GENERATOR_COMMAND.getCommand()));
-		String groupName = DanteLeaderClockCommands.GET_TONE_GENERATOR_COMMAND.getGroupName();
-		int numberOfFailToneLevelOrFrequency = 0;
-		// 8 indicates 8 tone channels.
-		for (int i = 1; i <= 8; i++) {
-			// format of tone frequency's payload: i1f where 1 is the tone channel.
-			String currentToneFrequency = doc.getElementsByAttributeValue(DanteLeaderClockConstant.NAME_ATTRIBUTE, "i" + i + "f").val();
-			if (StringUtils.isNullOrEmpty(currentToneFrequency)) {
-				currentToneFrequency = DanteLeaderClockConstant.NONE;
-				numberOfFailToneLevelOrFrequency++;
+	private void toneGeneratorProperties(Map<String, String> stats) {
+		try {
+			Map<String, String> toneGeneratorInfoMap = new HashMap<>();
+			Document doc = Jsoup.parse(this.doGet(DanteLeaderClockCommands.GET_TONE_GENERATOR_COMMAND.getCommand()));
+			String groupName = DanteLeaderClockCommands.GET_TONE_GENERATOR_COMMAND.getGroupName();
+			int numberOfFailToneLevelOrFrequency = 0;
+			// 8 indicates 8 tone channels.
+			for (int i = 1; i <= 8; i++) {
+				// format of tone frequency's payload: i1f where 1 is the tone channel.
+				String currentToneFrequency = doc.getElementsByAttributeValue(DanteLeaderClockConstant.NAME_ATTRIBUTE, "i" + i + "f").val();
+				if (StringUtils.isNullOrEmpty(currentToneFrequency)) {
+					currentToneFrequency = DanteLeaderClockConstant.NONE;
+					numberOfFailToneLevelOrFrequency++;
+				}
+				// format of tone level's payload: i1l where 1 is the tone channel.
+				String currentToneLevel = doc.getElementsByAttributeValue(DanteLeaderClockConstant.NAME_ATTRIBUTE, "i" + i + "l").val();
+				if (StringUtils.isNullOrEmpty(currentToneLevel)) {
+					currentToneLevel = DanteLeaderClockConstant.NONE;
+					numberOfFailToneLevelOrFrequency++;
+				}
+				toneGeneratorInfoMap.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName,
+						DanteLeaderClockConstant.TONE + i + DanteLeaderClockConstant.FREQUENCY + DanteLeaderClockConstant.NORMALIZED_TONE_FREQUENCY), currentToneFrequency);
+				toneGeneratorInfoMap.put(
+						String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockConstant.TONE + i + DanteLeaderClockConstant.LEVEL + DanteLeaderClockConstant.NORMALIZED_TONE_LEVEL),
+						currentToneLevel);
 			}
-			// format of tone level's payload: i1l where 1 is the tone channel.
-			String currentToneLevel = doc.getElementsByAttributeValue(DanteLeaderClockConstant.NAME_ATTRIBUTE, "i" + i + "l").val();
-			if (StringUtils.isNullOrEmpty(currentToneLevel)) {
-				currentToneLevel = DanteLeaderClockConstant.NONE;
-				numberOfFailToneLevelOrFrequency++;
+			if (numberOfFailToneLevelOrFrequency == toneGeneratorInfoMap.size()) {
+				throw new ResourceNotReachableException("Fail to populate statistics for ToneGenerator group");
 			}
-			toneGeneratorInfoMap.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName,
-					DanteLeaderClockConstant.TONE + i + DanteLeaderClockConstant.FREQUENCY + DanteLeaderClockConstant.NORMALIZED_TONE_FREQUENCY), currentToneFrequency);
-			toneGeneratorInfoMap.put(
-					String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockConstant.TONE + i + DanteLeaderClockConstant.LEVEL + DanteLeaderClockConstant.NORMALIZED_TONE_LEVEL),
-					currentToneLevel);
+			// Only put to stats here if no exception occur.
+			stats.putAll(toneGeneratorInfoMap);
+		} catch (Exception e) {
+			logger.error("Fail to get and populate list of tone generators",e);
+			failedMonitor.put(DanteLeaderClockConstant.TONE_GENERATOR, e.getMessage());
 		}
-		if (numberOfFailToneLevelOrFrequency == toneGeneratorInfoMap.size()) {
-			throw new ResourceNotReachableException("Fail to populate statistics for ToneGenerator group, all properties are not in correct format.");
-		}
-		// Only put to stats here if no exception occur.
-		stats.putAll(toneGeneratorInfoMap);
 	}
 
 	/**
 	 * Populate statistics for network properties
 	 *
 	 * @param stats Map of statistics
-	 * @throws Exception when fail to get network statistics
 	 */
-	private void networkProperties(Map<String, String> stats) throws Exception {
-		Map<String, String> networkMap = new HashMap<>();
-		Document doc = Jsoup.parse(doGet(DanteLeaderClockCommands.GET_NETWORK_COMMAND.getCommand()));
-		Elements trElements = doc.select(DanteLeaderClockConstant.TR_TAG);
-		// Remove unused tr tag
-		trElements.remove(0);
-		// List that contains network configurations is enabled
-		List<Integer> validNetworkList = new ArrayList<>();
-		// Handle the first 4 tds from the second tr to find which network properties are enabled then store to a list.
-		// If DanteSecondary is disabled => the format should look like this:
-		// ...
-		// <tr>
-		//      <td>IP Address</td>
-		//      <td>X.X.X.X</td>
-		//      <td rowspan="4">Disabled</td>
-		//      <td>X.X.X.X</td>
-		// </tr>
-		Elements tdElements = trElements.get(0).select(DanteLeaderClockConstant.TD_TAG);
-		// Populate ip addresses to stats map and add valid network properties to validNetworkList.
-		populateIpAddressProperties(networkMap, validNetworkList, tdElements);
-		int numberOfNoneNetworkProperties = 0;
-		// Loop through other tr tags to extract needed information
-		for (int i = 1; i < trElements.size(); i++) {
-			Elements tdElements2 = trElements.get(i).select(DanteLeaderClockConstant.TD_TAG);
-			// First td store the name(Subnet Mask/Gateway/MAC Address) of the property that will be extracted.
-			String firstTd = tdElements2.get(0).text();
-			int index = 1;
-			for (Integer id : validNetworkList) {
-				String tdValue = tdElements2.get(index).text();
-				String propertyName;
-				if (id == 1) {
-					propertyName = DanteLeaderClockConstant.DANTE_PRIMARY;
-				} else if (id == 2) {
-					propertyName = DanteLeaderClockConstant.DANTE_SECONDARY;
-				} else {
-					propertyName = DanteLeaderClockConstant.MANAGEMENT;
+	private void networkProperties(Map<String, String> stats) {
+		try {
+			Map<String, String> networkMap = new HashMap<>();
+			Document doc = Jsoup.parse(doGet(DanteLeaderClockCommands.GET_NETWORK_COMMAND.getCommand()));
+			Elements trElements = doc.select(DanteLeaderClockConstant.TR_TAG);
+			// Remove unused tr tag
+			trElements.remove(0);
+			// List that contains network configurations is enabled
+			List<Integer> validNetworkList = new ArrayList<>();
+			// Handle the first 4 tds from the second tr to find which network properties are enabled then store to a list.
+			// If DanteSecondary is disabled => the format should look like this:
+			// ...
+			// <tr>
+			//      <td>IP Address</td>
+			//      <td>X.X.X.X</td>
+			//      <td rowspan="4">Disabled</td>
+			//      <td>X.X.X.X</td>
+			// </tr>
+			Elements tdElements = trElements.get(0).select(DanteLeaderClockConstant.TD_TAG);
+			// Populate ip addresses to stats map and add valid network properties to validNetworkList.
+			populateIpAddressProperties(networkMap, validNetworkList, tdElements);
+			int numberOfNoneNetworkProperties = 0;
+			// Loop through other tr tags to extract needed information
+			for (int i = 1; i < trElements.size(); i++) {
+				Elements tdElements2 = trElements.get(i).select(DanteLeaderClockConstant.TD_TAG);
+				// First td store the name(Subnet Mask/Gateway/MAC Address) of the property that will be extracted.
+				String firstTd = tdElements2.get(0).text();
+				int index = 1;
+				for (Integer id : validNetworkList) {
+					String tdValue = tdElements2.get(index).text();
+					String propertyName;
+					if (id == 1) {
+						propertyName = DanteLeaderClockConstant.DANTE_PRIMARY;
+					} else if (id == 2) {
+						propertyName = DanteLeaderClockConstant.DANTE_SECONDARY;
+					} else {
+						propertyName = DanteLeaderClockConstant.MANAGEMENT;
+					}
+					String noSpaceFirstTd = firstTd.replaceAll(DanteLeaderClockConstant.SPACE_REGEX, DanteLeaderClockConstant.EMPTY);
+					if (StringUtils.isNullOrEmpty(tdValue)) {
+						tdValue = DanteLeaderClockConstant.NONE;
+						numberOfNoneNetworkProperties++;
+					}
+					networkMap.put(String.format(DanteLeaderClockConstant.TWO_STRINGS_FORMAT, propertyName, noSpaceFirstTd), tdValue);
+					index++;
 				}
-				String noSpaceFirstTd = firstTd.replaceAll(DanteLeaderClockConstant.SPACE_REGEX, DanteLeaderClockConstant.EMPTY);
-				if (StringUtils.isNullOrEmpty(tdValue)) {
-					tdValue = DanteLeaderClockConstant.NONE;
-					numberOfNoneNetworkProperties++;
-				}
-				networkMap.put(String.format(DanteLeaderClockConstant.TWO_STRINGS_FORMAT, propertyName, noSpaceFirstTd), tdValue);
-				index++;
 			}
+			if (numberOfNoneNetworkProperties == networkMap.size()) {
+				throw new ResourceNotReachableException("Fail to populate statistics for Network group");
+			}
+			// Only put to stats here if no exception occur.
+			stats.putAll(networkMap);
+		} catch (Exception e) {
+			logger.error("Fail to get and populate network properties.",e);
+			failedMonitor.put(DanteLeaderClockConstant.NETWORK, e.getMessage());
 		}
-		if (numberOfNoneNetworkProperties == networkMap.size()) {
-			throw new ResourceNotReachableException("Fail to populate statistics for Network group, all properties are not in correct format.");
-		}
-		// Only put to stats here if no exception occur.
-		stats.putAll(networkMap);
 	}
 
 	/**
@@ -434,37 +474,45 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 	 * Populate statistics for system properties
 	 *
 	 * @param stats Map of statistics
-	 * @throws Exception when fail to get system statistics
 	 */
-	private void systemProperties(Map<String, String> stats) throws Exception {
-		Map<String, String> systemMap = new HashMap<>();
-		Document doc = Jsoup.parse(doGet(DanteLeaderClockCommands.GET_SYSTEM_COMMAND.getCommand()));
-		String serialNumber = doc.getElementsByClass(DanteLeaderClockConstant.CLASS_TAG_VAL).get(0).text();
-		stats.put(DanteLeaderClockConstant.SERIAL_NUMBER, serialNumber);
-		Elements trElements = doc.select(DanteLeaderClockConstant.TR_TAG);
-		trElements.remove(0);
-		int numberOfNoneSystemProperties = 0;
-		for (Element trElement : trElements
-		) {
-			Elements tdElements = trElement.select(DanteLeaderClockConstant.TD_TAG);
-			String propertyName = tdElements.get(0).text().replaceAll(DanteLeaderClockConstant.SPACE_REGEX, DanteLeaderClockConstant.EMPTY);
-			String systemVersion = tdElements.get(1).text();
-			if (StringUtils.isNullOrEmpty(systemVersion)) {
-				systemVersion = DanteLeaderClockConstant.NONE;
-				numberOfNoneSystemProperties++;
+	private void systemProperties(Map<String, String> stats) {
+		try {
+			Map<String, String> systemMap = new HashMap<>();
+			Document doc = Jsoup.parse(doGet(DanteLeaderClockCommands.GET_SYSTEM_COMMAND.getCommand()));
+			String serialNumber = doc.getElementsByClass(DanteLeaderClockConstant.CLASS_TAG_VAL).get(0).text();
+			stats.put(DanteLeaderClockConstant.SERIAL_NUMBER, serialNumber);
+			Elements trElements = doc.select(DanteLeaderClockConstant.TR_TAG);
+			trElements.remove(0);
+			int numberOfNoneSystemProperties = 0;
+			for (Element trElement : trElements
+			) {
+				Elements tdElements = trElement.select(DanteLeaderClockConstant.TD_TAG);
+				if (tdElements.size() == 2) {
+					String propertyName = tdElements.get(0).text().replaceAll(DanteLeaderClockConstant.SPACE_REGEX, DanteLeaderClockConstant.EMPTY);
+					String systemVersion = tdElements.get(1).text();
+					if (StringUtils.isNullOrEmpty(systemVersion)) {
+						systemVersion = DanteLeaderClockConstant.NONE;
+						numberOfNoneSystemProperties++;
+					}
+					String systemDate = tdElements.get(2).text();
+					if (StringUtils.isNullOrEmpty(systemDate)) {
+						systemDate = DanteLeaderClockConstant.NONE;
+						numberOfNoneSystemProperties++;
+					}
+					systemMap.put(String.format(DanteLeaderClockConstant.TWO_STRINGS_FORMAT, propertyName, DanteLeaderClockMonitoringMetrics.SYSTEM_VERSION.getPropertyName()), systemVersion);
+					systemMap.put(String.format(DanteLeaderClockConstant.TWO_STRINGS_FORMAT, propertyName, DanteLeaderClockMonitoringMetrics.SYSTEM_DATE.getPropertyName()), systemDate);
+				} else {
+					numberOfNoneSystemProperties += 2;
+				}
 			}
-			String systemDate = tdElements.get(2).text();
-			if (StringUtils.isNullOrEmpty(systemDate)) {
-				systemDate = DanteLeaderClockConstant.NONE;
-				numberOfNoneSystemProperties++;
+			if (numberOfNoneSystemProperties == systemMap.size()) {
+				throw new ResourceNotReachableException("Fail to populate statistics for System group");
 			}
-			systemMap.put(String.format(DanteLeaderClockConstant.TWO_STRINGS_FORMAT, propertyName, DanteLeaderClockMonitoringMetrics.SYSTEM_VERSION.getPropertyName()), systemVersion);
-			systemMap.put(String.format(DanteLeaderClockConstant.TWO_STRINGS_FORMAT, propertyName, DanteLeaderClockMonitoringMetrics.SYSTEM_DATE.getPropertyName()), systemDate);
+			stats.putAll(systemMap);
+		} catch (Exception e) {
+			logger.error("Fail to get and populate system properties.",e);
+			failedMonitor.put(DanteLeaderClockConstant.SYSTEM, e.getMessage());
 		}
-		if (numberOfNoneSystemProperties == systemMap.size()) {
-			throw new ResourceNotReachableException("Fail to populate statistics for System group, all properties are not in correct format.");
-		}
-		stats.putAll(systemMap);
 	}
 
 	/**
@@ -520,7 +568,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 		// If formElements doesn't contain the login.htm form, the login is success.
 		for (Element e : formElements) {
 			// Check if selected form is login form then preceded
-			if (e.attr(DanteLeaderClockConstant.ACTION_ATTRIBUTE).equals(DanteLeaderClockCommands.GET_LOGIN_COMMAND.getCommand())) {
+			if (e.attr(DanteLeaderClockConstant.ACTION_ATTRIBUTE).equals(DanteLeaderClockConstant.SLASH + DanteLeaderClockCommands.GET_LOGIN_COMMAND.getCommand())) {
 				// If we reach here after sending the get request to /main.htm, but is actually redirect back to /login.htm page => the adapter not logged in.
 				if (isOtherEndpoint) {
 					isLoginSuccess = false;
@@ -539,4 +587,3 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 		isLoginSuccess = true;
 	}
 }
-
