@@ -116,7 +116,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			// Only throw if the device is unreachable
 			throw e;
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error("Fail to login with cause: " + e.getCause() +", trying to re-login later.",e);
 		}
 		// If the endpoint is reachable. We check if it contains valid information
 		Document document = Jsoup.parse(endpointResponse);
@@ -220,7 +220,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.SECONDARY_PTPV1_STATE.getPropertyName()), generalDTO.getSecondaryPTPV1());
 			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.SECONDARY_PTPV2_STATE.getPropertyName()), generalDTO.getSecondaryPTPV2());
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error("Fail to get and populate list of general properties",e);
 			failedMonitor.put(DanteLeaderClockConstant.GENERAL, e.getMessage());
 		}
 	}
@@ -294,7 +294,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.SYNC_INPUT_TERMINATION.getPropertyName()),
 					syncInputDTO.getSyncInputTermination());
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error("Fail to get and populate list of sync input.",e);
 			failedMonitor.put(DanteLeaderClockConstant.SYNC_INPUT, e.getMessage());
 		}
 	}
@@ -372,7 +372,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			// Only put to stats here if no exception occur.
 			stats.putAll(toneGeneratorInfoMap);
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error("Fail to get and populate list of tone generators",e);
 			failedMonitor.put(DanteLeaderClockConstant.TONE_GENERATOR, e.getMessage());
 		}
 	}
@@ -435,7 +435,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			// Only put to stats here if no exception occur.
 			stats.putAll(networkMap);
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error("Fail to get and populate network properties.",e);
 			failedMonitor.put(DanteLeaderClockConstant.NETWORK, e.getMessage());
 		}
 	}
@@ -510,7 +510,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			}
 			stats.putAll(systemMap);
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error("Fail to get and populate system properties.",e);
 			failedMonitor.put(DanteLeaderClockConstant.SYSTEM, e.getMessage());
 		}
 	}
