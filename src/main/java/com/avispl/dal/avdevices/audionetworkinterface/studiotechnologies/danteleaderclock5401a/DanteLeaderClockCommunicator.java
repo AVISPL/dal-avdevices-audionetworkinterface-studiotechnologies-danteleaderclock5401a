@@ -89,7 +89,18 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 	 * @param pollingInterval the {@code java.lang.String} field
 	 */
 	public void setPollingInterval(String pollingInterval) {
-		this.pollingInterval = pollingInterval;
+		try {
+			// Convert pollingInterval from minute to long millisecond
+			long interval = Long.parseLong(pollingInterval) * 60000;
+			if (interval > 60000) {
+				this.pollingInterval = String.valueOf(interval);
+			} else {
+				this.pollingInterval = String.valueOf(60000);
+			}
+		} catch (Exception e) {
+			logger.error(String.format("Handle adapter property pollingInterval fail with value: %s.", pollingInterval), e);
+			this.pollingInterval = String.valueOf(60000);
+		}
 	}
 
 	/**
@@ -133,7 +144,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 		long currentTimestamp = System.currentTimeMillis();
 		String intervalInString = DanteLeaderClockConstant.EMPTY;
 		if (!StringUtils.isNullOrEmpty(pollingInterval)) {
-			long handledPollingInterval = handlePollingInterval();
+			long handledPollingInterval = Long.parseLong(pollingInterval);
 			// if handledPollingInterval is 60 secs then it's normal cpx interval, we won't return cached statistics.
 			if (handledPollingInterval != 60000 && validStatisticPollingInterval > currentTimestamp && localExtendedStatistics != null) {
 				if (logger.isDebugEnabled()) {
@@ -180,24 +191,6 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 		extendedStatistics.setStatistics(stats);
 		localExtendedStatistics = extendedStatistics;
 		return Collections.singletonList(localExtendedStatistics);
-	}
-
-	/**
-	 * Handle {@link DanteLeaderClockCommunicator#pollingInterval} adapter property
-	 */
-	private long handlePollingInterval() {
-		try {
-			// Convert pollingInterval from minute to long millisecond
-			long interval = Long.parseLong(pollingInterval) * 60000;
-			if (interval > 60000) {
-				return interval;
-			} else {
-				return 60000;
-			}
-		} catch (Exception e) {
-			logger.error(String.format("Handle adapter property pollingInterval fail with value: %s.", pollingInterval), e);
-			return 60000;
-		}
 	}
 
 	/**
@@ -494,19 +487,23 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			for (Element trElement : trElements
 			) {
 				Elements tdElements = trElement.select(DanteLeaderClockConstant.TD_TAG);
-				String propertyName = tdElements.get(0).text().replaceAll(DanteLeaderClockConstant.SPACE_REGEX, DanteLeaderClockConstant.EMPTY);
-				String systemVersion = tdElements.get(1).text();
-				if (StringUtils.isNullOrEmpty(systemVersion)) {
-					systemVersion = DanteLeaderClockConstant.NONE;
-					numberOfNoneSystemProperties++;
+				if (tdElements.size() == 2) {
+					String propertyName = tdElements.get(0).text().replaceAll(DanteLeaderClockConstant.SPACE_REGEX, DanteLeaderClockConstant.EMPTY);
+					String systemVersion = tdElements.get(1).text();
+					if (StringUtils.isNullOrEmpty(systemVersion)) {
+						systemVersion = DanteLeaderClockConstant.NONE;
+						numberOfNoneSystemProperties++;
+					}
+					String systemDate = tdElements.get(2).text();
+					if (StringUtils.isNullOrEmpty(systemDate)) {
+						systemDate = DanteLeaderClockConstant.NONE;
+						numberOfNoneSystemProperties++;
+					}
+					systemMap.put(String.format(DanteLeaderClockConstant.TWO_STRINGS_FORMAT, propertyName, DanteLeaderClockMonitoringMetrics.SYSTEM_VERSION.getPropertyName()), systemVersion);
+					systemMap.put(String.format(DanteLeaderClockConstant.TWO_STRINGS_FORMAT, propertyName, DanteLeaderClockMonitoringMetrics.SYSTEM_DATE.getPropertyName()), systemDate);
+				} else {
+					numberOfNoneSystemProperties += 2;
 				}
-				String systemDate = tdElements.get(2).text();
-				if (StringUtils.isNullOrEmpty(systemDate)) {
-					systemDate = DanteLeaderClockConstant.NONE;
-					numberOfNoneSystemProperties++;
-				}
-				systemMap.put(String.format(DanteLeaderClockConstant.TWO_STRINGS_FORMAT, propertyName, DanteLeaderClockMonitoringMetrics.SYSTEM_VERSION.getPropertyName()), systemVersion);
-				systemMap.put(String.format(DanteLeaderClockConstant.TWO_STRINGS_FORMAT, propertyName, DanteLeaderClockMonitoringMetrics.SYSTEM_DATE.getPropertyName()), systemDate);
 			}
 			if (numberOfNoneSystemProperties == systemMap.size()) {
 				throw new ResourceNotReachableException("Fail to populate statistics for System group");
