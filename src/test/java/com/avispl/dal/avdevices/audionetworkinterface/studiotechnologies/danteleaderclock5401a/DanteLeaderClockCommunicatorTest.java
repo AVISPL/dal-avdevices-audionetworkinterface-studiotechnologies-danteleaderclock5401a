@@ -9,6 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import com.avispl.dal.avdevices.audionetworkinterface.studiotechnologies.danteleaderclock5401a.utils.DanteLeaderClockCommands;
 import com.avispl.symphony.api.dal.dto.monitor.ExtendedStatistics;
 import com.avispl.symphony.api.dal.error.ResourceNotReachableException;
 
@@ -25,7 +26,8 @@ class DanteLeaderClockCommunicatorTest {
 	}
 
 	@AfterEach()
-	public void destroy() {
+	public void destroy() throws Exception {
+		danteLeaderClockCommunicator.doGet(DanteLeaderClockCommands.GET_LOGOUT_COMMAND.getCommand());
 		danteLeaderClockCommunicator.destroy();
 	}
 
@@ -43,7 +45,7 @@ class DanteLeaderClockCommunicatorTest {
 			assertNotNull(stats.get("ToneGenerator#Tone"+i+"Frequency(Hz)"));
 		}
 		// None-group
-		assertNotNull(stats.get("DantePrimaryIpAddress"));
+		assertNotNull(stats.get("DantePrimaryIPAddress"));
 		assertNotNull(stats.get("DantePrimarySubnetMask"));
 		assertNotNull(stats.get("MainFPGAFirmwareVersion"));
 		assertNotNull(stats.get("MainFPGAFirmwareDate"));
@@ -64,7 +66,7 @@ class DanteLeaderClockCommunicatorTest {
 
 		assertNotNull(stats.get("DanteProductVersion"));
 		assertNotNull(stats.get("SyncFPGAFirmwareDate"));
-		assertNotNull(stats.get("ManagementIpAddress"));
+		assertNotNull(stats.get("ManagementIPAddress"));
 		assertNotNull(stats.get("ManagementMACAddress"));
 
 		assertNotNull(stats.get("SyncFPGAFirmwareVersion"));
@@ -84,7 +86,7 @@ class DanteLeaderClockCommunicatorTest {
 		assertNotNull(stats.get("SyncInput#CurrentDanteSampleRate(kHz)"));
 		assertNotNull(stats.get("SyncInput#SyncInputType"));
 		assertNotNull(stats.get("SyncInput#LockStatus"));
-		assertNotNull(stats.get("SyncInput#SyncInputStatusMetric"));
+		assertNotNull(stats.get("SyncInput#SyncInputStatus"));
 		assertNotNull(stats.get("SyncInput#SyncInputTermination"));
 		assertEquals(51, stats.size());
 	}
