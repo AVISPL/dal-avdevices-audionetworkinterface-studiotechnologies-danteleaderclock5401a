@@ -116,7 +116,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			// Only throw if the device is unreachable
 			throw e;
 		} catch (Exception e) {
-			logger.error("Fail to login with cause: " + e.getCause() +", trying to re-login later.",e);
+			logger.error("Fail to login with cause: " + e.getCause() + ", trying to re-login later.", e);
 		}
 		// If the endpoint is reachable. We check if it contains valid information
 		Document document = Jsoup.parse(endpointResponse);
@@ -220,7 +220,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.SECONDARY_PTPV1_STATE.getPropertyName()), generalDTO.getSecondaryPTPV1());
 			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.SECONDARY_PTPV2_STATE.getPropertyName()), generalDTO.getSecondaryPTPV2());
 		} catch (Exception e) {
-			logger.error("Fail to get and populate list of general properties",e);
+			logger.error("Fail to get and populate list of general properties", e);
 			failedMonitor.put(DanteLeaderClockConstant.GENERAL, e.getMessage());
 		}
 	}
@@ -262,6 +262,15 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 		// Span tags contain information about: Current Clock Source, Sync Input Status, Primary Leader Clock, Primary PTPV1,
 		// Primary PTPV2, Secondary PTPV1, Secondary PTPV2,
 		Elements spanTagElements = valClassElements.select(DanteLeaderClockConstant.SPAN_TAG);
+		List<Element> listElementsToBeRemoved = new ArrayList<>();
+		for (Element element : spanTagElements) {
+			if (element.className().equals(DanteLeaderClockConstant.CLASS_TAG_ERR)) {
+				listElementsToBeRemoved.add(element);
+			}
+		}
+		for (Element element : listElementsToBeRemoved) {
+			spanTagElements.remove(element);
+		}
 		generalDTO.setCurrentClockSource(EnumHandler.populateNoneIfNotValidName(spanTagElements.get(0).text(), CurrentClockSourceMetric.class));
 		String primaryLeaderClock = populateNoneIfNotValidPrimaryLeaderClock(spanTagElements.get(2).text());
 		generalDTO.setPrimaryLeaderClock(primaryLeaderClock);
@@ -294,7 +303,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			stats.put(String.format(DanteLeaderClockConstant.GROUP_PROPERTY_NAME, groupName, DanteLeaderClockMonitoringMetrics.SYNC_INPUT_TERMINATION.getPropertyName()),
 					syncInputDTO.getSyncInputTermination());
 		} catch (Exception e) {
-			logger.error("Fail to get and populate list of sync input.",e);
+			logger.error("Fail to get and populate list of sync input.", e);
 			failedMonitor.put(DanteLeaderClockConstant.SYNC_INPUT, e.getMessage());
 		}
 	}
@@ -308,6 +317,17 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 	private void populateSyncInputDTO(Document doc, SyncInputDTO syncInputDTO) {
 		Elements valClassElements = doc.getElementsByClass(DanteLeaderClockConstant.CLASS_TAG_VAL);
 		Elements spanTagElements = valClassElements.select(DanteLeaderClockConstant.SPAN_TAG);
+		// Remove err tag
+		List<Element> listElementsToBeRemoved = new ArrayList<>();
+		for (Element element : spanTagElements) {
+			if (element.className().equals(DanteLeaderClockConstant.CLASS_TAG_ERR)) {
+				listElementsToBeRemoved.add(element);
+			}
+		}
+		for (Element element : listElementsToBeRemoved) {
+			spanTagElements.remove(element);
+		}
+		//
 		String lockStatus = populateNoneIfNotValidLockStatus(spanTagElements.get(0).text());
 		syncInputDTO.setLockStatus(lockStatus);
 		String currentDanteSampleRateNotNormalized = EnumHandler.populateNoneIfNotValidName(spanTagElements.get(1).text(), SyncInputCurrentSampleRateMetric.class);
@@ -372,7 +392,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			// Only put to stats here if no exception occur.
 			stats.putAll(toneGeneratorInfoMap);
 		} catch (Exception e) {
-			logger.error("Fail to get and populate list of tone generators",e);
+			logger.error("Fail to get and populate list of tone generators", e);
 			failedMonitor.put(DanteLeaderClockConstant.TONE_GENERATOR, e.getMessage());
 		}
 	}
@@ -435,7 +455,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			// Only put to stats here if no exception occur.
 			stats.putAll(networkMap);
 		} catch (Exception e) {
-			logger.error("Fail to get and populate network properties.",e);
+			logger.error("Fail to get and populate network properties.", e);
 			failedMonitor.put(DanteLeaderClockConstant.NETWORK, e.getMessage());
 		}
 	}
@@ -487,7 +507,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			for (Element trElement : trElements
 			) {
 				Elements tdElements = trElement.select(DanteLeaderClockConstant.TD_TAG);
-				if (tdElements.size() == 2) {
+				if (tdElements.size() == 3) {
 					String propertyName = tdElements.get(0).text().replaceAll(DanteLeaderClockConstant.SPACE_REGEX, DanteLeaderClockConstant.EMPTY);
 					String systemVersion = tdElements.get(1).text();
 					if (StringUtils.isNullOrEmpty(systemVersion)) {
@@ -510,7 +530,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			}
 			stats.putAll(systemMap);
 		} catch (Exception e) {
-			logger.error("Fail to get and populate system properties.",e);
+			logger.error("Fail to get and populate system properties.", e);
 			failedMonitor.put(DanteLeaderClockConstant.SYSTEM, e.getMessage());
 		}
 	}
@@ -583,7 +603,11 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 					}
 				}
 			}
+			if (e.attr(DanteLeaderClockConstant.ACTION_ATTRIBUTE).equals(DanteLeaderClockConstant.SLASH + DanteLeaderClockCommands.GET_LOGOUT_COMMAND.getCommand())) {
+				isLoginSuccess = true;
+				return;
+			}
 		}
-		isLoginSuccess = true;
+		isLoginSuccess = false;
 	}
 }

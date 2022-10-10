@@ -23,12 +23,12 @@ public enum DanteLeaderClockMonitoringMetrics {
 	SECONDARY_PTPV2_STATE("SecondaryPTPv2State"),
 	// SYNC INPUT GROUP
 	LOCK_STATUS("LockStatus"),
-	SYNC_INPUT_STATUS("SyncInputStatusMetric"),
+	SYNC_INPUT_STATUS("SyncInputStatus"),
 	SYNC_INPUT_TYPE("SyncInputType"),
 	SYNC_INPUT_TERMINATION("SyncInputTermination"),
 	CURRENT_DANTE_SAMPLE_RATE("CurrentDanteSampleRate(kHz)"),
 	// NETWORK GROUP
-	NETWORK_IP_ADDRESS("IpAddress"),
+	NETWORK_IP_ADDRESS("IPAddress"),
 	// SYSTEM GROUP
 	SYSTEM_VERSION("Version"),
 	SYSTEM_DATE("Date")

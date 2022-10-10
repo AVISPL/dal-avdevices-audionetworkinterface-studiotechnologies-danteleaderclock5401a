@@ -29,7 +29,7 @@ public class EnumHandler {
 				try {
 					Method method = c.getClass().getMethod("getName");
 					String name = (String) method.invoke(c); // getName executed
-					if (inputName.equals(name)) {
+					if (inputName.contains(name)) {
 						return inputName;
 					}
 				} catch (Exception e) {
