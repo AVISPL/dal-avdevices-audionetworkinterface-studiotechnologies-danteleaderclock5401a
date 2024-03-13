@@ -131,8 +131,8 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 			// Get all forms from the HTML response
 			checkLoginSuccess(doc, false);
 		} catch (Exception e) {
-			logger.error(String.format("An exception occur when trying to log in with username: %s, password: %s, error message: %s", this.getLogin(), this.getPassword(), e.getMessage()), e);
-			throw new FailedLoginException(String.format("Fail to login with username: %s, password: %s", this.getLogin(), this.getPassword()));
+			logger.error(String.format("An exception occur when trying to log in with error message: %s",e.getMessage()), e);
+			throw new FailedLoginException("Fail to login. Please check the credentials");
 		}
 	}
 
@@ -159,7 +159,7 @@ public class DanteLeaderClockCommunicator extends RestCommunicator implements Mo
 		}
 		this.authenticate();
 		if (!isLoginSuccess) {
-			throw new ResourceNotReachableException(String.format("Fail to login with username: %s, password: %s", this.getLogin(), this.getPassword()));
+			throw new ResourceNotReachableException("Fail to login. Please check the credentials");
 		}
 		if (logger.isDebugEnabled()) {
 			logger.debug(String.format("Perform getMultipleStatistics() at host: %s, port: %s", this.getHost(), this.getPort()));
