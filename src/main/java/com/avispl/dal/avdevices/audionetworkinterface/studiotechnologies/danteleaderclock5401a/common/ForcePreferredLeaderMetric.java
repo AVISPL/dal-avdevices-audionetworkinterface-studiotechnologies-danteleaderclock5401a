@@ -53,7 +53,7 @@ public enum ForcePreferredLeaderMetric {
 	 * @return ForcePreferredLeaderMetric
 	 */
 	public static ForcePreferredLeaderMetric getByValue(String stateCode) {
-		for (ForcePreferredLeaderMetric state: ForcePreferredLeaderMetric.values()
+		for (ForcePreferredLeaderMetric state: values()
 		) {
 			if (state.getValue().equals(stateCode)) {
 				return state;
