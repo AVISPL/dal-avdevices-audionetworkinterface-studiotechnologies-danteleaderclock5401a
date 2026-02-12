@@ -7,6 +7,7 @@ on:
       - 'feature/**'
       - 'bugfix/**'
       - 'hotfix/**'
+      - 'housekeeping/**'
 
 jobs:
   prep:
