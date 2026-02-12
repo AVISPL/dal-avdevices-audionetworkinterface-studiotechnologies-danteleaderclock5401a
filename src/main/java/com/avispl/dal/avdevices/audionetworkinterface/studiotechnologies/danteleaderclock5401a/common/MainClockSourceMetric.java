@@ -54,7 +54,7 @@ public enum MainClockSourceMetric {
 	 * @return MainClockSourceMetric
 	 */
 	public static MainClockSourceMetric getByValue(String sourceValue) {
-		for (MainClockSourceMetric source: MainClockSourceMetric.values()
+		for (MainClockSourceMetric source: values()
 		) {
 			if (source.getValue().equals(sourceValue)) {
 				return source;

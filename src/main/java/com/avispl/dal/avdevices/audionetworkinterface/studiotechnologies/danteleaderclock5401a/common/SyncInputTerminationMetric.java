@@ -53,7 +53,7 @@ public enum SyncInputTerminationMetric {
 	 * @return SyncInputTerminationMetric
 	 */
 	public static SyncInputTerminationMetric getByValue(String code) {
-		for (SyncInputTerminationMetric syncInputTerminationMetric: SyncInputTerminationMetric.values()
+		for (SyncInputTerminationMetric syncInputTerminationMetric: values()
 		) {
 			if (syncInputTerminationMetric.getValue().equals(code)) {
 				return syncInputTerminationMetric;
