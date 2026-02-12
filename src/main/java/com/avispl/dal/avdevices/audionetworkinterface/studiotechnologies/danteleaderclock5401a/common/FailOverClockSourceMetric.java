@@ -53,7 +53,7 @@ public enum FailOverClockSourceMetric {
 	 * @return FailOverClockSourceMetric
 	 */
 	public static FailOverClockSourceMetric getByValue(String sourceValue) {
-		for (FailOverClockSourceMetric source: FailOverClockSourceMetric.values()
+		for (FailOverClockSourceMetric source: values()
 		) {
 			if (source.getValue().equals(sourceValue)) {
 				return source;

@@ -54,7 +54,7 @@ public enum SyncInputTypeMetric {
 	 * @return SyncInputTypeMetric
 	 */
 	public static SyncInputTypeMetric getByValue(String code) {
-		for (SyncInputTypeMetric syncInputTypeMetric: SyncInputTypeMetric.values()
+		for (SyncInputTypeMetric syncInputTypeMetric: values()
 		) {
 			if (syncInputTypeMetric.getValue().equals(code)) {
 				return syncInputTypeMetric;
